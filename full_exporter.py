@@ -4,67 +4,106 @@ full_exporter.py
 Downloads the full City of Long Beach service request dataset via Opendatasoft's
 'exports' endpoint in JSON format and saves it to a timestamped file.
 
-Also logs each export attempt and outcome to data/logs/export_log_YYYY-MM-DD.txt
+This version is optimized for general cloud or local runtimes:
+- Uses chunked streaming download to handle large datasets safely
+- Adds visible progress logging for long downloads
+- Includes explicit timeout and retry handling
+- Stores files under ./data and ./data/logs
+- Adds gzip compression to stay under GitHub’s 100 MB file size limit
 """
 
 import requests
 import json
 import os
+import gzip
+import time
 from datetime import datetime, timezone
 from config import BASE_URL, DATASET_ID
 from pathlib import Path
 
-# Ensure the data directory exists
-Path("data").mkdir(parents=True, exist_ok=True)
 
-LOG_DIR = "data/logs"
+# === Local Data and Logging Setup =============================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Root of the current project
+DATA_DIR = os.path.join(BASE_DIR, "data")
+LOG_DIR = os.path.join(DATA_DIR, "logs")
+
+# Ensure directories exist
+Path(LOG_DIR).mkdir(parents=True, exist_ok=True)
 
 
 def log_event(message: str):
     """Append timestamped event messages to a daily export log."""
-    os.makedirs(LOG_DIR, exist_ok=True)
     log_file = os.path.join(LOG_DIR, f"export_log_{datetime.now().strftime('%Y-%m-%d')}.txt")
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     with open(log_file, "a", encoding="utf-8") as lf:
         lf.write(f"[{timestamp}] {message}\n")
 
 
-def download_full_export_json():
+def download_full_export_json(max_retries: int = 3):
     """
     Downloads the full dataset and saves it to a timestamped JSON file.
-    Returns the output path and record count.
+    Uses chunked streaming with progress logging to handle large files.
+    Then compresses it to a .json.gz file to reduce file size for GitHub storage.
+    Returns the output path (compressed) and record count.
     """
 
     start_time = datetime.now(timezone.utc)
     log_event("Starting full dataset export.")
-
     print("Attempting full dataset export (JSON format)...")
 
     export_url = f"{BASE_URL.rstrip('/')}/catalog/datasets/{DATASET_ID}/exports/json"
-    print(f"Requesting data from: {export_url}")
+    print(f"Requesting data from: {export_url}\n")
 
-    try:
-        response = requests.get(export_url, timeout=600)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching dataset: {e}")
-        log_event(f"ERROR during fetch: {e}")
+    timestamp_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%MZ")
+    raw_output_file = os.path.join(DATA_DIR, f"service_requests_full_{timestamp_str}.json")
+    compressed_output_file = raw_output_file + ".gz"
+
+    # === Attempt with retries ==================================================
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"Attempt {attempt}/{max_retries} - Connecting...")
+            response = requests.get(export_url, stream=True, timeout=(10, 600))
+            response.raise_for_status()
+
+            print("Connection established. Downloading in chunks...")
+            chunk_size = 1024 * 1024  # 1 MB
+            total_downloaded = 0
+
+            with open(raw_output_file, "wb") as f:
+                for chunk in response.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+                        total_downloaded += len(chunk)
+                        # Print progress every 10 MB
+                        if total_downloaded % (10 * chunk_size) < chunk_size:
+                            print(f"  Downloaded {total_downloaded / (1024 * 1024):.1f} MB...")
+
+            print(f"Download complete. Saved raw file to: {raw_output_file}")
+            break
+
+        except requests.exceptions.Timeout:
+            print(f"Attempt {attempt} timed out after 10 minutes, retrying...")
+            log_event(f"Timeout on attempt {attempt}")
+            time.sleep(5)
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed on attempt {attempt}: {e}")
+            log_event(f"RequestException on attempt {attempt}: {e}")
+            time.sleep(5)
+    else:
+        print("All attempts failed. Exiting.")
+        log_event("All retries failed.")
         return None, 0
 
+    # === Validate JSON =========================================================
     try:
-        data = response.json()
+        with open(raw_output_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
     except json.JSONDecodeError:
         print("Error: Response is not valid JSON.")
         log_event("ERROR: Response not valid JSON.")
-        return None, 0
+        return raw_output_file, 0
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%MZ")
-    os.makedirs("data", exist_ok=True)
-    output_file = f"data/service_requests_full_{timestamp}.json"
-
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
+    # Handle both array and dict-style responses
     if isinstance(data, dict) and "results" in data:
         count = len(data["results"])
     elif isinstance(data, list):
@@ -72,16 +111,38 @@ def download_full_export_json():
     else:
         count = 0
 
-    file_size = os.path.getsize(output_file) / (1024 * 1024)
-    print(f"\nSaved dataset to: {output_file}")
-    print(f"File size: {file_size:.2f} MB")
-    print(f"Approx. record count: {count}\n")
+    # === Compress File =========================================================
+    print(f"Compressing {raw_output_file} to {compressed_output_file} ...")
+    try:
+        with open(raw_output_file, "rb") as fin, gzip.open(compressed_output_file, "wb") as fout:
+            fout.writelines(fin)
+        compressed_size = os.path.getsize(compressed_output_file) / (1024 * 1024)
+        print(f"Compression complete. Compressed size: {compressed_size:.2f} MB")
 
-    log_event(f"Export complete. File: {output_file}, Records: {count}, Size: {file_size:.2f} MB, Duration: {(datetime.now(timezone.utc) - start_time).total_seconds():.1f}s")
+        # Optionally remove uncompressed file to save space
+        os.remove(raw_output_file)
+        print(f"Removed uncompressed file: {raw_output_file}")
 
-    return output_file, count
+    except Exception as e:
+        print(f"Error during compression: {e}")
+        log_event(f"ERROR during compression: {e}")
+        return raw_output_file, count
+
+    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+
+    print(f"\nSaved compressed dataset to: {compressed_output_file}")
+    print(f"Approx. record count: {count}")
+    print(f"Duration: {duration:.1f} seconds\n")
+
+    log_event(
+        f"Export complete. File: {compressed_output_file}, Records: {count}, "
+        f"Compressed Size: {compressed_size:.2f} MB, Duration: {duration:.1f}s"
+    )
+
+    return compressed_output_file, count
 
 
+# === Main Execution ============================================================
 if __name__ == "__main__":
     path, total_records = download_full_export_json()
     if total_records == 0:

@@ -12,6 +12,10 @@ import json
 import os
 from datetime import datetime, timezone
 from config import BASE_URL, DATASET_ID
+from pathlib import Path
+
+# Ensure the data directory exists
+Path("data").mkdir(parents=True, exist_ok=True)
 
 LOG_DIR = "data/logs"
 

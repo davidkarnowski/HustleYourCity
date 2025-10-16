@@ -46,6 +46,17 @@ jobs:
           echo "Running summary parser..."
           python type_status_response_summary.py
 
+      - name: Duplicate latest summary file as current
+        run: |
+          echo "Copying latest summary file to summary_results_current.json..."
+          latest_file=$(ls -t data/summary_stats_*.json | head -n 1)
+          if [ -f "$latest_file" ]; then
+            cp "$latest_file" data/summary_results_current.json
+            echo "Copied $latest_file to summary_results_current.json"
+          else
+            echo "No summary_stats_*.json file found to copy."
+          fi
+
       - name: Commit and push updated data
         run: |
           echo "Checking for new or modified data files..."

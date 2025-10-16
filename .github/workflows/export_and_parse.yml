@@ -44,7 +44,7 @@ jobs:
       - name: Run summary parser
         run: |
           echo "Running summary parser..."
-          python type_status_response_summary_safe.py
+          python type_status_response_summary.py
 
       - name: Commit and push updated data
         run: |

@@ -160,4 +160,4 @@ If you don’t like this project, you might have to answer for the services bein
 ---
 
 ## License
-MIT License — open for public use, contribution, and adaptation by other cities.
+NaN

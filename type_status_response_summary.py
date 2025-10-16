@@ -1,7 +1,8 @@
 """
 type_status_response_summary_safe.py
 
-Parses the most recent full export (timestamped) and computes:
+Parses the most recent full export (timestamped) — supports both compressed (.json.gz)
+and uncompressed (.json) formats — and computes:
 - Per-type status totals
 - Average response times
 - Windowed summaries (All-time, 90d, 60d, 30d, 7d, 1d, 4h)
@@ -15,6 +16,7 @@ Logs all runs to:
 
 import json
 import os
+import gzip
 import shutil
 import tempfile
 from pathlib import Path
@@ -43,8 +45,9 @@ def log_event(message: str):
 # ------------------------------
 
 def extract_timestamp_from_filename(filename):
+    """Extract timestamp (UTC) from export filename pattern."""
     try:
-        stem = Path(filename).stem
+        stem = Path(filename).stem.replace(".json", "").replace(".gz", "")
         ts_str = stem.split("_")[-1]
         return datetime.strptime(ts_str, "%Y-%m-%dT%H%MZ").replace(tzinfo=timezone.utc)
     except Exception:
@@ -52,7 +55,8 @@ def extract_timestamp_from_filename(filename):
 
 
 def find_latest_export_file(data_dir=DATA_DIR):
-    files = list(Path(data_dir).glob("service_requests_full_*.json"))
+    """Find latest timestamped export (supports .json and .json.gz)."""
+    files = list(Path(data_dir).glob("service_requests_full_*.json*"))
     if not files:
         raise FileNotFoundError(f"No export files found in {data_dir}")
 
@@ -74,6 +78,7 @@ def find_latest_export_file(data_dir=DATA_DIR):
 # ------------------------------
 
 def parse_datetime_iso(s):
+    """Parse ISO datetime safely."""
     if not s:
         return None
     try:
@@ -83,8 +88,18 @@ def parse_datetime_iso(s):
 
 
 def load_export_readonly(export_path):
-    with open(export_path, "r", encoding="utf-8") as fh:
-        data = json.load(fh)
+    """
+    Load JSON or GZipped JSON export file.
+    Detects compression automatically.
+    Returns list of records.
+    """
+    if str(export_path).endswith(".gz"):
+        with gzip.open(export_path, "rt", encoding="utf-8") as fh:
+            data = json.load(fh)
+    else:
+        with open(export_path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+
     return data["results"] if isinstance(data, dict) and "results" in data else data
 
 
@@ -93,6 +108,7 @@ def load_export_readonly(export_path):
 # ------------------------------
 
 def summarize_by_type(records):
+    """Aggregate counts and average response times per service type."""
     agg = defaultdict(lambda: {
         "total": 0,
         "status_counts": Counter(),
@@ -120,6 +136,7 @@ def summarize_by_type(records):
 
 
 def print_type_table(label, summary_by_type):
+    """Print human-readable per-type summary table."""
     print(f"\n=== {label} ===")
     if not summary_by_type:
         print("No records found in this window.")
@@ -146,6 +163,7 @@ def print_type_table(label, summary_by_type):
 # ------------------------------
 
 def write_json_atomically(obj, dest_path):
+    """Write JSON safely to prevent corruption on partial writes."""
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(prefix="tmp_summary_", suffix=".json", dir=os.path.dirname(dest_path))
     try:

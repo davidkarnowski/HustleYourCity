@@ -33,7 +33,7 @@ By automating the collection and analysis of these datasets, *Hustle-Up Long Bea
 
 ## Core Python Scripts
 
-### 1. `full_export.py`
+### 1. `full_exporter.py`
 Downloads the complete dataset from the Long Beach open data API using the JSON export endpoint.  
 Each export is saved as a timestamped file in the `data/` directory (e.g. `service_requests_full_20251016_070000.json`).
 
@@ -83,7 +83,7 @@ pip install -r requirements.txt
 
 Run full export:
 ```bash
-python3 full_export.py
+python3 full_exporter.py
 ```
 
 Parse dataset and generate summaries:

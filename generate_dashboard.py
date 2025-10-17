@@ -5,6 +5,7 @@ from pathlib import Path
 # -------------------- CONFIGURATION --------------------
 DATA_URL = "https://longbeach.opendatasoft.com/explore/dataset/service-requests/information/"
 PERIODS = {
+    "4hours": "Last 4 Hours",
     "24hours": "Last 1 Days",
     "7days": "Last 7 Days",
     "30days": "Last 30 Days",
@@ -86,7 +87,7 @@ def build_dashboard(period_label: str, dataset: dict):
         ]
     )
     fig1.update_layout(
-        title=f"Average Response Time (Hours) — {period_label.replace('days', ' Days').replace('hours', ' Hours').title()} View",
+        title=f"Average Response Time (Hours) — {PERIODS[period_label]} View",
         xaxis_title="Hours",
         yaxis_title="Service Type",
         template="plotly_dark",
@@ -137,17 +138,18 @@ def build_dashboard(period_label: str, dataset: dict):
         ]
     )
     fig2.update_layout(
-        title=f"Service Call Status Breakdown — {period_label.replace('days', ' Days').replace('hours', ' Hours').title()}",
+        title=f"Service Call Status Breakdown — {PERIODS[period_label]}",
         plot_bgcolor="#0054ad",
         paper_bgcolor="#0054ad",
         font=dict(color="white"),
-        margin=dict(l=30, r=30, t=40, b=10),  # Reduced extra vertical space
+        margin=dict(l=30, r=30, t=40, b=10),
         height=700 + len(service_types) * 10,
     )
 
     # -------------------- NAVIGATION BUTTONS --------------------
     nav_html = """
     <div class="nav-buttons">
+      <a href="index_4hours.html" class="nav-btn">4 Hours</a>
       <a href="index_24hours.html" class="nav-btn">24 Hours</a>
       <a href="index_7days.html" class="nav-btn">7 Days</a>
       <a href="index_30days.html" class="nav-btn">30 Days</a>
@@ -164,7 +166,7 @@ def build_dashboard(period_label: str, dataset: dict):
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Hustle Long Beach Dashboard — {period_label.replace('days', ' Days').replace('hours', ' Hours').title()} View</title>
+  <title>Hustle Long Beach Dashboard — {PERIODS[period_label]} View</title>
   <style>
     body {{
       background-color: #0054ad;
@@ -214,7 +216,7 @@ def build_dashboard(period_label: str, dataset: dict):
       text-align: center;
     }}
     .footer {{
-      margin-top: 20px;  /* reduced space above footer */
+      margin-top: 20px;
       font-size: 0.9em;
       color: #e0e0e0;
       border-top: 1px solid #ffffff44;
@@ -225,7 +227,7 @@ def build_dashboard(period_label: str, dataset: dict):
 </head>
 <body>
   <img src="{BANNER_PATH}" alt="Hustle Long Beach Banner" class="banner">
-  <h1>City Service Dashboard — {period_label.replace('days', ' Days').replace('hours', ' Hours').title()} View</h1>
+  <h1>City Service Dashboard — {PERIODS[period_label]} View</h1>
   {nav_html}
   <div class="source-note">
     Data Source: <a href="{DATA_URL}" target="_blank">Go Long Beach Service Requests (Open Data Portal)</a>

@@ -57,6 +57,11 @@ jobs:
             echo "No summary_stats_*.json file found to copy."
           fi
 
+      - name: Generate dashboards
+        run: |
+          echo "Generating dashboard HTML files..."
+          python generate_dashboard.py
+
       - name: Commit and push updated data
         run: |
           echo "Checking for new or modified data files..."
@@ -66,7 +71,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No new data changes detected. Skipping commit."
           else
-            git commit -m "Automated dataset and summary update [skip ci]"
+            git commit -m "Automated dataset, summary, and dashboard update [skip ci]"
             git push
             echo "Changes pushed successfully."
           fi

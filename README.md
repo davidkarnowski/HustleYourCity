@@ -1,7 +1,7 @@
 # HustleYourCity (Long Beach)
 
 ## Overview
-**Hustle Long Beach** is a civic accountability project designed to empower citizens by providing transparent, data-driven insights into the responsiveness of city services. The project leverages open government data from the **City of Long Beach, California**, to calculate average response times, total service calls, and departmental workloads — all visualized through a public-facing dashboard.
+**Hustle Long Beach** is a civic accountability project designed to empower citizens by providing transparent, data-driven insights into the responsiveness of city services. The project leverages open government data from the **City of Long Beach, California**, to calculate average response times, total service calls, and departmental workloads.
 
 This initiative aims to make service performance data accessible and meaningful for residents, journalists, and policymakers alike — encouraging constructive dialogue and efficient public resource management.
 

@@ -1,7 +1,7 @@
-# Hustle-Up Long Beach
+# HustleYourCity (Long Beach)
 
 ## Overview
-**Hustle-Up Long Beach** is a civic accountability project designed to empower citizens by providing transparent, data-driven insights into the responsiveness of city services. The project leverages open government data from the **City of Long Beach, California**, to calculate average response times, total service calls, and departmental workloads — all visualized through a public-facing dashboard.
+**Hustle Long Beach** is a civic accountability project designed to empower citizens by providing transparent, data-driven insights into the responsiveness of city services. The project leverages open government data from the **City of Long Beach, California**, to calculate average response times, total service calls, and departmental workloads — all visualized through a public-facing dashboard.
 
 This initiative aims to make service performance data accessible and meaningful for residents, journalists, and policymakers alike — encouraging constructive dialogue and efficient public resource management.
 
@@ -10,7 +10,7 @@ This initiative aims to make service performance data accessible and meaningful 
 ## Project Mission
 This project exists to provide **citizens of Long Beach** with a clear and quantitative view of how their local government responds to requests for city services. While the city already offers open data through its [Long Beach Open Data Portal](https://longbeach.opendatasoft.com/), much of that information is presented in tables and GIS-style maps that are difficult for the average resident to interpret.
 
-By automating the collection and analysis of these datasets, *Hustle-Up Long Beach* transforms raw data into actionable insights — helping citizens understand where services excel and where improvements may be needed.
+By automating the collection and analysis of these datasets, *Hustle Long Beach* transforms raw data into actionable insights — helping citizens understand where services excel and where improvements may be needed.
 
 ---
 

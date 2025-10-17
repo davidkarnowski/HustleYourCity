@@ -155,8 +155,6 @@ By providing simple, quantitative data on city responsiveness, we hope to:
 - Encourage resource prioritization where service lags occur.  
 - Recognize departments and staff who perform exceptionally well.  
 
-If you don’t like this project, you might have to answer for the services being rendered.
-
 ---
 
 ## License

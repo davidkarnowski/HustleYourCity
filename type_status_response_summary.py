@@ -235,6 +235,12 @@ def main():
 
         log_event(f"{label}: {len(subset)} records summarized.")
 
+    # --------------------------------------------------------
+    # Append ISO timestamp for when the data was downloaded
+    # (Use the timestamp from the export file itself)
+    # --------------------------------------------------------
+    summary_data["downloaded_at"] = export_ts.strftime("%Y-%m-%dT%H:%M:%SZ")
+
     summary_path = f"{DATA_DIR}/summary_stats_{export_ts.strftime('%Y-%m-%dT%H%MZ')}.json"
 
     try:

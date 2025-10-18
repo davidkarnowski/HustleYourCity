@@ -69,6 +69,7 @@ jobs:
           git pull origin main || echo "Proceeding despite pull conflicts (likely none for data/)"
 
       - name: Commit and push updated data
+        id: commit_push
         run: |
           echo "Checking for new or modified data files..."
           git config user.name "github-actions[bot]"
@@ -76,8 +77,22 @@ jobs:
           git add data/ data/dashboard/
           if git diff --cached --quiet; then
             echo "No new data changes detected. Skipping commit."
+            echo "updated=false" >> $GITHUB_OUTPUT
           else
             git commit -m "Automated dataset, summary, and dashboard update [skip ci]"
             git push origin main
             echo "Changes pushed successfully."
+            echo "updated=true" >> $GITHUB_OUTPUT
           fi
+
+      - name: Trigger Make.com webhook
+        if: steps.commit_push.outputs.updated == 'true'
+        env:
+          MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
+          MAKE_WEBHOOK_KEY: ${{ secrets.MAKE_WEBHOOK_KEY }}
+        run: |
+          echo "Triggering Make.com scenario webhook (data updated)..."
+          curl -s -o /dev/null -w "%{http_code}" -X POST "$MAKE_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $MAKE_WEBHOOK_KEY" \
+            -d "{}" | grep -q "200" && echo "Webhook triggered successfully." || echo "Webhook trigger failed."

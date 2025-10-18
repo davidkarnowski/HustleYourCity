@@ -3,12 +3,12 @@ name: Automated Data Export and Summary
 on:
   schedule:
     # Los Angeles times converted to UTC (LA is UTC−7 during Daylight Saving Time)
-    - cron: "1 14 * * *"   # 7:01 AM LA (14:01 UTC)
-    - cron: "1 18 * * *"   # 11:01 AM LA (18:01 UTC)
-    - cron: "1 22 * * *"   # 3:01 PM LA (22:01 UTC)
-    - cron: "1 2 * * *"    # 7:01 PM LA (02:01 UTC next day)
-    - cron: "1 6 * * *"    # 11:01 PM LA (06:01 UTC next day)
-    - cron: "1 10 * * *"   # 3:01 AM LA (10:01 UTC)
+    - cron: "10 14 * * *"   # 7:10 AM LA (14:01 UTC)
+    - cron: "10 18 * * *"   # 11:10 AM LA (18:01 UTC)
+    - cron: "10 22 * * *"   # 3:10 PM LA (22:01 UTC)
+    - cron: "10 2 * * *"    # 7:10 PM LA (02:01 UTC next day)
+    - cron: "10 6 * * *"    # 11:10 PM LA (06:01 UTC next day)
+    - cron: "10 10 * * *"   # 3:10 AM LA (10:01 UTC)
   workflow_dispatch:       # allow manual runs as well
 
 jobs:

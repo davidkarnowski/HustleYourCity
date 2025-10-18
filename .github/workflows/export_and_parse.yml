@@ -91,8 +91,29 @@ jobs:
           MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
           MAKE_WEBHOOK_KEY: ${{ secrets.MAKE_WEBHOOK_KEY }}
         run: |
+          # The key must be sent using the 'x-make-apikey' HTTP header.
+          # The Authorization header used previously was incorrect for this setup.
           echo "Triggering Make.com scenario webhook (data updated)..."
+          
+          # Construct a JSON payload with relevant GitHub context information
+          PAYLOAD='{
+            "event": "data_pipeline_update",
+            "repository": "${{ github.repository }}",
+            "ref": "${{ github.ref_name }}",
+            "sha": "${{ github.sha }}",
+            "trigger_type": "${{ github.event_name }}",
+            "run_id": "${{ github.run_id }}"
+          }'
+
           curl -s -o /dev/null -w "%{http_code}" -X POST "$MAKE_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $MAKE_WEBHOOK_KEY" \
-            -d "{}" | grep -q "200" && echo "Webhook triggered successfully." || echo "Webhook trigger failed."
+            -H "x-make-apikey: $MAKE_WEBHOOK_KEY" \
+            -d "$PAYLOAD" | { 
+              read http_code 
+              if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 202 ]; then
+                echo "Webhook triggered successfully. HTTP Status: $http_code"
+              else
+                echo "Webhook trigger failed. HTTP Status: $http_code"
+                exit 1 # Fail the step if the webhook doesn't respond with success
+              fi
+            }

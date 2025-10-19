@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 from pathlib import Path
 from datetime import datetime
 import pytz  # You may need to install this: pip install pytz
+import requests  # NEW: to fetch the latest LLM status text from GitHub
 
 # -------------------- CONFIGURATION --------------------
 DATA_URL = "https://longbeach.opendatasoft.com/explore/dataset/service-requests/information/"
@@ -17,7 +18,12 @@ OUTPUT_DIR = Path("data/dashboard")
 BANNER_PATH = "Hustle_Long_Beach_Banner.png"
 GITHUB_LINK = "https://github.com/davidkarnowski/HustleYourCity"
 
+# NEW: direct link to the current status text file in your repo’s raw format
+STATUS_TEXT_URL = (
+    "https://raw.githubusercontent.com/davidkarnowski/HustleYourCity/main/data/current_text_status.txt"
+)
 # -------------------------------------------------------
+
 
 def normalize_status(status: str) -> str:
     """Normalize status names (combine closed variants, skip duplicates)."""
@@ -32,6 +38,7 @@ def normalize_status(status: str) -> str:
         return "Open"
     return status.title()
 
+
 def format_timestamp(timestamp_utc_str: str) -> str:
     """
     Convert UTC timestamp string to a more readable, localized format.
@@ -39,20 +46,33 @@ def format_timestamp(timestamp_utc_str: str) -> str:
     """
     if not timestamp_utc_str or timestamp_utc_str == "Unknown":
         return "Unknown time"
-    
+
     try:
-        # Parse the UTC timestamp string
-        utc_time = datetime.fromisoformat(timestamp_utc_str.replace('Z', '+00:00'))
-
-        # Convert to US/Pacific time zone
-        local_tz = pytz.timezone('America/Los_Angeles')
+        utc_time = datetime.fromisoformat(timestamp_utc_str.replace("Z", "+00:00"))
+        local_tz = pytz.timezone("America/Los_Angeles")
         local_time = utc_time.astimezone(local_tz)
-
-        # Format as a readable string
         return local_time.strftime("%B %d, %Y at %I:%M:%S %p %Z")
     except (ValueError, AttributeError, ImportError):
-        # Fallback if pytz is missing or string is malformed
         return timestamp_utc_str
+
+
+def fetch_current_status_text() -> str:
+    """
+    Fetch the latest 'Current Status Update' text file from GitHub.
+    This ensures every dashboard reflects the most recent LLM-generated update.
+    """
+    try:
+        response = requests.get(STATUS_TEXT_URL, timeout=10)
+        if response.status_code == 200:
+            text = response.text.strip()
+            # Limit overly long content to protect layout
+            if len(text) > 2000:
+                text = text[:2000] + "..."
+            return text
+        else:
+            return f"(Unable to load status text — HTTP {response.status_code})"
+    except Exception as e:
+        return f"(Error loading status text: {e})"
 
 
 def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
@@ -60,6 +80,10 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
 
     period_name = PERIODS[period_label]
     period_data = dataset.get(period_name, {}).get("types", {})
+
+    # -------------------- FETCH STATUS TEXT --------------------
+    # This happens at the start of each dashboard build, so every dashboard includes the latest content.
+    current_status_text = fetch_current_status_text()
 
     # -------------------- DATA AGGREGATION --------------------
     avg_response_list = []
@@ -96,14 +120,13 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
         table_data[case_type] = statuses
 
     # -------------------- SORTING --------------------
-    # Filter out empty data before sorting
     avg_response_list = [x for x in avg_response_list if x[1] is not None]
     avg_response_list.sort(key=lambda x: x[1], reverse=True)
     types_sorted = [x[0] for x in avg_response_list]
     avg_sorted = [x[1] for x in avg_response_list]
 
     # -------------------- PLOT 1: AVERAGE RESPONSE --------------------
-    if types_sorted: # Only create plot if there is data
+    if types_sorted:
         fig1 = go.Figure(
             data=[
                 go.Bar(
@@ -123,26 +146,23 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
             paper_bgcolor="#0054ad",
             font=dict(color="white"),
             margin=dict(l=180, r=50, t=80, b=50),
-            height=max(400, 30 * len(types_sorted) + 200), # Dynamic height
+            height=max(400, 30 * len(types_sorted) + 200),
         )
-        plot1_html = fig1.to_html(full_html=False, include_plotlyjs='cdn')
+        plot1_html = fig1.to_html(full_html=False, include_plotlyjs="cdn")
     else:
         plot1_html = "<p style='text-align: center; font-size: 1.2em; margin: 40px 0;'>No average response time data for this period.</p>"
 
-
     # -------------------- TABLE: STATUS BREAKDOWN --------------------
-    # Filter out any types that ended up with no normalized statuses
     table_data = {k: v for k, v in table_data.items() if v}
-    
+
     if table_data:
         all_statuses = sorted(
             {s for statuses in table_data.values() for s in statuses.keys()}
         )
-    
         service_types = []
         column_values = {s: [] for s in all_statuses}
         total_col = []
-    
+
         for case_type, statuses in table_data.items():
             service_types.append(case_type)
             total = 0
@@ -151,10 +171,12 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
                 column_values[s].append(val)
                 total += val
             total_col.append(total)
-    
+
         header_vals = ["Service Type"] + all_statuses + ["Total"]
-        cell_vals = [service_types] + [column_values[s] for s in all_statuses] + [total_col]
-    
+        cell_vals = [service_types] + [
+            column_values[s] for s in all_statuses
+        ] + [total_col]
+
         fig2 = go.Figure(
             data=[
                 go.Table(
@@ -166,7 +188,12 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
                     ),
                     cells=dict(
                         values=cell_vals,
-                        fill_color=[["#004b9b" if i % 2 == 0 else "#0054ad" for i in range(len(service_types))]],
+                        fill_color=[
+                            [
+                                "#004b9b" if i % 2 == 0 else "#0054ad"
+                                for i in range(len(service_types))
+                            ]
+                        ],
                         font=dict(color="white", size=12),
                         align="left",
                     ),
@@ -179,22 +206,17 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
             paper_bgcolor="#0054ad",
             font=dict(color="white"),
             margin=dict(l=30, r=30, t=40, b=10),
-            height=max(400, len(service_types) * 35 + 150), # Dynamic height
+            height=max(400, len(service_types) * 35 + 150),
         )
         plot2_html = fig2.to_html(full_html=False, include_plotlyjs=False)
     else:
         plot2_html = f"<p style='text-align: center; font-size: 1.2em; margin: 40px 0;'>No service request data found for this period ({period_name}).</p>"
 
     # -------------------- NAVIGATION BUTTONS --------------------
-    # Building nav buttons dynamically to highlight the active one
     nav_html_parts = ['<div class="nav-buttons">']
     for p_label, p_name in PERIODS.items():
-        # Use p_name for the button text, stripping "Last "
         btn_text = p_name.replace("Last ", "")
-        
-        # Check if this is the current page's button
         if p_label == period_label:
-            # Apply an "active" style
             nav_html_parts.append(
                 f'<a href="index_{p_label}.html" class="nav-btn nav-btn-active">{btn_text}</a>'
             )
@@ -202,9 +224,8 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
             nav_html_parts.append(
                 f'<a href="index_{p_label}.html" class="nav-btn">{btn_text}</a>'
             )
-    nav_html_parts.append('</div>')
+    nav_html_parts.append("</div>")
     nav_html = "\n".join(nav_html_parts)
-
 
     # -------------------- HTML PAGE --------------------
     html_path = OUTPUT_DIR / f"index_{period_label}.html"
@@ -228,7 +249,26 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
       text-align: center;
       color: white;
       margin-top: 10px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+    }}
+    .status-box {{
+      background-color: #003c82;
+      border-left: 5px solid #ffffff;
+      padding: 15px 20px;
+      margin: 20px auto;
+      max-width: 850px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      font-size: 1.05em;
+      line-height: 1.5em;
+      white-space: pre-wrap;
+    }}
+    .status-title {{
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-bottom: 8px;
+      text-align: center;
+      text-transform: uppercase;
     }}
     a {{
       color: #ffffff;
@@ -244,7 +284,7 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
     }}
     .nav-buttons {{
       display: flex;
-      flex-wrap: wrap; /* Allow buttons to wrap on small screens */
+      flex-wrap: wrap;
       justify-content: center;
       gap: 15px;
       margin: 20px 0 30px 0;
@@ -256,13 +296,12 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
       border-radius: 6px;
       font-weight: 600;
       transition: 0.3s;
-      border: 2px solid white; /* Add border for consistency */
+      border: 2px solid white;
     }}
     .nav-btn:hover {{
       background-color: #d9eaff;
     }}
     .nav-btn-active {{
-      /* Style for the currently active button */
       background-color: #003c82;
       color: white;
       font-weight: bold;
@@ -285,6 +324,13 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
 <body>
   <img src="{BANNER_PATH}" alt="Hustle Long Beach Banner" class="banner">
   <h1>City Service Dashboard — {PERIODS[period_label]} View</h1>
+
+  <!-- NEW: Current Status Update block -->
+  <div class="status-box">
+    <div class="status-title">Current Status Update</div>
+    <div class="status-text">{current_status_text}</div>
+  </div>
+
   {nav_html}
   <div class="source-note">
     Data Source: <a href="{DATA_URL}" target="_blank">Go Long Beach Service Requests (Open Data Portal)</a>
@@ -306,13 +352,12 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
 
     print(f"✅ Dashboard generated: {html_path.resolve()}")
 
+
 def main():
     """Generate multiple time-period dashboards."""
-    # Assuming the script is run from the root, update path as needed
     data_path = Path("data/summary_results_current.json")
     if not data_path.exists():
-        # Fallback for testing with the JSON you provided
-        data_path = Path("data.json") 
+        data_path = Path("data.json")
         if not data_path.exists():
             raise FileNotFoundError(
                 f"Could not find data file at {data_path} or data/summary_results_current.json"
@@ -322,21 +367,16 @@ def main():
     with open(data_path, "r") as f:
         dataset = json.load(f)
 
-    # --- NEW ---
-    # 1. Get the raw timestamp string from the root of the JSON
     raw_timestamp = dataset.get("downloaded_at", "Unknown")
-    
-    # 2. Format it into a readable string
     formatted_timestamp = format_timestamp(raw_timestamp)
-    # -----------
 
     for period in PERIODS.keys():
         if PERIODS[period] not in dataset:
             print(f"⚠️  Warning: Period '{PERIODS[period]}' not found in JSON data. Skipping.")
             continue
-        
-        # 3. Pass the formatted timestamp to the build function
+
         build_dashboard(period, dataset, formatted_timestamp)
+
 
 if __name__ == "__main__":
     main()

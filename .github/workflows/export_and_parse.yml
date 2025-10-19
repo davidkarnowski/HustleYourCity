@@ -2,20 +2,20 @@ name: Automated Data Export and Summary
 
 on:
   schedule:
-    # Los Angeles times converted to UTC (LA is UTC−7 during Daylight Saving Time)
-    - cron: "10 14 * * *"   # 7:10 AM LA (14:01 UTC)
-    - cron: "10 18 * * *"   # 11:10 AM LA (18:01 UTC)
-    - cron: "10 22 * * *"   # 3:10 PM LA (22:01 UTC)
-    - cron: "10 2 * * *"    # 7:10 PM LA (02:01 UTC next day)
-    - cron: "10 6 * * *"    # 11:10 PM LA (06:01 UTC next day)
-    - cron: "10 10 * * *"   # 3:10 AM LA (10:01 UTC)
-  workflow_dispatch:       # allow manual runs as well
+    # Los Angeles times converted to UTC (LA is UTC−7 during DST)
+    - cron: "10 14 * * *"   # 7:10 AM LA (14:10 UTC)
+    - cron: "10 18 * * *"   # 11:10 AM LA (18:10 UTC)
+    - cron: "10 22 * * *"   # 3:10 PM LA (22:10 UTC)
+    - cron: "10 2 * * *"    # 7:10 PM LA (02:10 UTC next day)
+    - cron: "10 6 * * *"    # 11:10 PM LA (06:10 UTC next day)
+    - cron: "10 10 * * *"   # 3:10 AM LA (10:10 UTC)
+  workflow_dispatch:
 
 jobs:
   export_and_parse:
     runs-on: ubuntu-latest
     permissions:
-      contents: write       # required to push changes back
+      contents: write
       actions: read
       id-token: write
 
@@ -84,36 +84,3 @@ jobs:
             echo "Changes pushed successfully."
             echo "updated=true" >> $GITHUB_OUTPUT
           fi
-
-      - name: Trigger Make.com webhook
-        if: steps.commit_push.outputs.updated == 'true'
-        env:
-          MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
-          MAKE_WEBHOOK_KEY: ${{ secrets.MAKE_WEBHOOK_KEY }}
-        run: |
-          # The key must be sent using the 'x-make-apikey' HTTP header.
-          # The Authorization header used previously was incorrect for this setup.
-          echo "Triggering Make.com scenario webhook (data updated)..."
-          
-          # Construct a JSON payload with relevant GitHub context information
-          PAYLOAD='{
-            "event": "data_pipeline_update",
-            "repository": "${{ github.repository }}",
-            "ref": "${{ github.ref_name }}",
-            "sha": "${{ github.sha }}",
-            "trigger_type": "${{ github.event_name }}",
-            "run_id": "${{ github.run_id }}"
-          }'
-
-          curl -s -o /dev/null -w "%{http_code}" -X POST "$MAKE_WEBHOOK_URL" \
-            -H "Content-Type: application/json" \
-            -H "x-make-apikey: $MAKE_WEBHOOK_KEY" \
-            -d "$PAYLOAD" | { 
-              read http_code 
-              if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 202 ]; then
-                echo "Webhook triggered successfully. HTTP Status: $http_code"
-              else
-                echo "Webhook trigger failed. HTTP Status: $http_code"
-                exit 1 # Fail the step if the webhook doesn't respond with success
-              fi
-            }

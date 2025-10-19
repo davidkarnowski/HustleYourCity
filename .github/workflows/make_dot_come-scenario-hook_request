@@ -2,7 +2,7 @@ name: Daily Make.com Trigger and Dashboard Refresh
 
 on:
   schedule:
-    # 8:00 AM Los Angeles (UTC−7 during DST)
+    # 8:00 AM Los Angeles (UTC-7 during Daylight Saving Time)
     - cron: "0 15 * * *"
   workflow_dispatch:
 
@@ -28,6 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # Upgrade pip and install required dependencies
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
@@ -39,6 +40,7 @@ jobs:
         run: |
           echo "Triggering Make.com daily webhook..."
 
+          # Construct a JSON payload with repository and trigger context
           PAYLOAD='{
             "event": "daily_data_pipeline_trigger",
             "repository": "${{ github.repository }}",
@@ -46,11 +48,13 @@ jobs:
             "source": "github_actions_daily"
           }'
 
+          # Perform POST request to Make.com webhook endpoint
           RESPONSE=$(curl -s -o /tmp/response.txt -w "%{http_code}" -X POST "$MAKE_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -H "x-make-apikey: $MAKE_WEBHOOK_KEY" \
             -d "$PAYLOAD")
 
+          # Evaluate HTTP response code for success or failure
           if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 202 ]; then
             echo "Webhook triggered successfully (HTTP $RESPONSE)"
           else
@@ -61,8 +65,9 @@ jobs:
           fi
 
       - name: Wait 20 seconds for Make.com to finish updating
+        shell: bash
         run: |
-          echo "Waiting 20 seconds for Make.com to complete LLM response and repo update..."
+          echo "Waiting 20 seconds for Make.com to complete LLM response and push to repo..."
           sleep 20
 
       - name: Pull latest changes

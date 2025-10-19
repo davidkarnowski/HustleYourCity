@@ -1,0 +1,39 @@
+name: Daily Make.com Trigger
+
+on:
+  schedule:
+    # 8:00 AM Los Angeles = 15:00 UTC (during Daylight Saving Time)
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+
+jobs:
+  trigger_make_webhook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Make.com webhook
+        env:
+          MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
+          MAKE_WEBHOOK_KEY: ${{ secrets.MAKE_WEBHOOK_KEY }}
+        run: |
+          echo "Triggering Make.com daily webhook..."
+          
+          PAYLOAD='{
+            "event": "daily_data_pipeline_trigger",
+            "repository": "${{ github.repository }}",
+            "trigger_time": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "source": "github_actions_daily"
+          }'
+
+          RESPONSE=$(curl -s -o /tmp/response.txt -w "%{http_code}" -X POST "$MAKE_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "x-make-apikey: $MAKE_WEBHOOK_KEY" \
+            -d "$PAYLOAD")
+
+          if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 202 ]; then
+            echo "Webhook triggered successfully (HTTP $RESPONSE)"
+          else
+            echo "Webhook trigger failed (HTTP $RESPONSE)"
+            echo "Response body:"
+            cat /tmp/response.txt
+            exit 1
+          fi

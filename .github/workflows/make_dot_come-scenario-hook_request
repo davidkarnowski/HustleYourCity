@@ -1,0 +1,91 @@
+name: Daily Make.com Trigger and Dashboard Refresh
+
+on:
+  schedule:
+    # 8:00 AM Los Angeles (UTC−7 during DST)
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+
+jobs:
+  trigger_and_refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Trigger Make.com webhook
+        id: trigger_make
+        env:
+          MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
+          MAKE_WEBHOOK_KEY: ${{ secrets.MAKE_WEBHOOK_KEY }}
+        run: |
+          echo "Triggering Make.com daily webhook..."
+
+          PAYLOAD='{
+            "event": "daily_data_pipeline_trigger",
+            "repository": "${{ github.repository }}",
+            "trigger_time": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "source": "github_actions_daily"
+          }'
+
+          RESPONSE=$(curl -s -o /tmp/response.txt -w "%{http_code}" -X POST "$MAKE_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "x-make-apikey: $MAKE_WEBHOOK_KEY" \
+            -d "$PAYLOAD")
+
+          if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 202 ]; then
+            echo "Webhook triggered successfully (HTTP $RESPONSE)"
+          else
+            echo "Webhook trigger failed (HTTP $RESPONSE)"
+            echo "Response body:"
+            cat /tmp/response.txt
+            exit 1
+          fi
+
+      - name: Wait 20 seconds for Make.com to finish updating
+        run: |
+          echo "Waiting 20 seconds for Make.com to complete LLM response and repo update..."
+          sleep 20
+
+      - name: Pull latest changes
+        run: |
+          echo "Pulling latest repo changes to include Make.com text updates..."
+          git config pull.rebase false
+          git pull origin main
+
+      - name: Regenerate dashboards
+        run: |
+          echo "Regenerating dashboards after Make.com update..."
+          python generate_dashboard.py
+
+      - name: Commit and push updated dashboards
+        run: |
+          echo "Checking for updated dashboard files..."
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/dashboard/
+          if git diff --cached --quiet; then
+            echo "No dashboard changes detected. Skipping commit."
+          else
+            git commit -m "Daily dashboard refresh after Make.com update [skip ci]"
+            git push origin main
+            echo "Dashboard refresh pushed successfully."
+          fi

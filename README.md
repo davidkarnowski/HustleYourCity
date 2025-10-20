@@ -1,3 +1,4 @@
+![Hustle Long Beach Banner](https://github.com/davidkarnowski/HustleYourCity/blob/main/docs/Hustle_Long_Beach_Banner.png)
 # HustleYourCity (Long Beach)
 
 ## Overview

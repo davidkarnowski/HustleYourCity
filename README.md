@@ -14,6 +14,18 @@ By automating the collection and analysis of these datasets, *Hustle Long Beach*
 
 ---
 
+## Hustle Long Beach Dashboards
+
+Explore the latest city service response time dashboards by time period (updated every four hours):
+
+- [4-Hour Dashboard](https://davidkarnowski.github.io/HustleYourCity/data/dashboard/index_4hours.html)  
+- [24-Hour Dashboard](https://davidkarnowski.github.io/HustleYourCity/data/dashboard/index_24hours.html)  
+- [7-Day Dashboard](https://davidkarnowski.github.io/HustleYourCity/data/dashboard/index_7days.html)  
+- [30-Day Dashboard](https://davidkarnowski.github.io/HustleYourCity/data/dashboard/index_30days.html)  
+- [90-Day Dashboard](https://davidkarnowski.github.io/HustleYourCity/data/dashboard/index_90days.html)
+
+---
+
 ## Data Source
 - **Dataset Name:** Go Long Beach Service Requests  
 - **Source:** [Long Beach Open Data Portal](https://longbeach.opendatasoft.com/api/explore/v2.1/console)  

@@ -154,7 +154,6 @@ GitHub provides a **1 GB soft limit** for repositories and **2 GB hard limit** f
 ---
 
 ## Automated AI-Powered Analsyis Publishing Using LLM Inference and Make.com Scenario
-**Hustle Long Beach! | Make.com Scenario for Automated LLM Data Inference and Publishing:**
 ![Hustle Long Beach Make.com Scenario](https://github.com/davidkarnowski/HustleYourCity/blob/main/docs/Hustle_Long_Beach-Make_dot_com-Scenario_Workflow.png)
 
 ---
@@ -174,7 +173,7 @@ The model used by the Cerebras call is currently set to **GPT-OSS 120B**. The ou
 #### GitHub LLM Response Update  
 The routed GitHub flow contains two modules. The first makes an HTTPS request to the public project repository to retrieve the SHA hash value of the most recently updated `current_text_status.txt` file. The second performs an HTTPS PUT request to update that file with the latest `LLM_Response` variable.
 
-#### Facebook Pages Stauts Publishing
+#### Facebook Pages Status Publishing
 The routed `LLM_Response` variable is also sent to a Make.com connector for **Facebook Pages**, publishing the latest inferred status update to the **Hustle Long Beach** community page.
 
 #### LinkedIn Organization Stauts Publishing

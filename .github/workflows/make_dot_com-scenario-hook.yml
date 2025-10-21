@@ -63,16 +63,16 @@ jobs:
             exit 1
           fi
 
-      - name: Wait 20 seconds for Make.com to finish updating
+      - name: Wait 240 seconds for Make.com to finish updating
         run: |
-          echo "Waiting 20 seconds for Make.com to complete LLM response and repo update..."
+          echo "Waiting 240 seconds for Make.com to complete LLM response and repo update..."
           sleep 240
-
-      - name: Pull latest changes
+      
+      - name: Refresh repository for latest updates
         run: |
-          echo "Pulling latest repo changes to include Make.com text updates..."
-          git config pull.rebase false
-          git pull origin main
+          echo "Fetching latest commit from origin/main..."
+          git fetch origin main
+          git reset --hard origin/main
 
       - name: Regenerate dashboards
         run: |

@@ -65,7 +65,6 @@ def fetch_current_status_text() -> str:
         response = requests.get(STATUS_TEXT_URL, timeout=10)
         if response.status_code == 200:
             text = response.text.strip()
-            # Limit overly long content to protect layout
             if len(text) > 2000:
                 text = text[:2000] + "..."
             return text
@@ -82,7 +81,6 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
     period_data = dataset.get(period_name, {}).get("types", {})
 
     # -------------------- FETCH STATUS TEXT --------------------
-    # This happens at the start of each dashboard build, so every dashboard includes the latest content.
     current_status_text = fetch_current_status_text()
 
     # -------------------- DATA AGGREGATION --------------------
@@ -325,7 +323,6 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
   <img src="{BANNER_PATH}" alt="Hustle Long Beach Banner" class="banner">
   <h1>City Service Dashboard — {PERIODS[period_label]} View</h1>
 
-  <!-- NEW: Current Status Update block -->
   <div class="status-box">
     <div class="status-title">Current Status Update</div>
     <div class="status-text">{current_status_text}</div>
@@ -341,6 +338,29 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
         f.write(plot1_html)
         f.write("<br>\n")
         f.write(plot2_html)
+
+        # -------------------- PAYPAL SUPPORT SECTION --------------------
+        paypal_html = """
+  <div style="text-align:center; margin:40px auto 20px auto; max-width:800px;">
+    <h2 style="font-size:1.1em; font-weight:600; margin-bottom:0.75rem;">
+      Support the continued development and maintenance of the Hustle Long Beach! project.<br>
+      Any amount is appreciated and no PayPal account is required.
+    </h2>
+    <div>
+      <style>.pp-JYJDUKNCD4324{text-align:center;border:none;border-radius:0.25rem;min-width:11.625rem;padding:0 2rem;height:2.625rem;font-weight:bold;background-color:#FFD140;color:#000000;font-family:"Helvetica Neue",Arial,sans-serif;font-size:1rem;line-height:1.25rem;cursor:pointer;}</style>
+      <form action="https://www.paypal.com/ncp/payment/JYJDUKNCD4324" method="post" target="_blank" style="display:inline-grid;justify-items:center;align-content:start;gap:0.5rem;">
+        <input class="pp-JYJDUKNCD4324" type="submit" value="Buy Now" />
+        <img src="https://www.paypalobjects.com/images/Debit_Credit.svg" alt="cards" />
+        <section style="font-size:0.75rem;">
+          Powered by <img src="https://www.paypalobjects.com/paypal-ui/logos/svg/paypal-wordmark-color.svg" alt="paypal" style="height:0.875rem;vertical-align:middle;"/>
+        </section>
+      </form>
+    </div>
+  </div>
+"""
+        f.write(paypal_html)
+
+        # -------------------- FOOTER --------------------
         f.write(f"""
   <div class="footer">
     <p>Disclaimer: This dashboard is generated automatically from Long Beach’s public service request dataset via the Go Long Beach app. Accuracy depends on city data quality and parsing reliability.</p>

@@ -190,6 +190,13 @@ By providing simple, quantitative data on city responsiveness, we hope to:
 
 ---
 
+## Support Hustle Long Beach Development
+If you want to support the continued development and maintenance of this project, you can send an amount of your choosing to our PayPal account. You pick how much support to provide. No PayPal account required.
+[Support Hustle Long Beach! via PayPal - Click Here](https://www.paypal.com/ncp/payment/JYJDUKNCD4324)
+
+
+---
+
 ## License
 
 This project uses third-party open source libraries:

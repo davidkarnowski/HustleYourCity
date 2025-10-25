@@ -2,8 +2,9 @@ import json
 import plotly.graph_objects as go
 from pathlib import Path
 from datetime import datetime
-import pytz  # You may need to install this: pip install pytz
-import requests  # NEW: to fetch the latest LLM status text from GitHub
+import pytz
+import requests
+import matplotlib.pyplot as plt  # NEW: for static PNG export
 
 # -------------------- CONFIGURATION --------------------
 DATA_URL = "https://longbeach.opendatasoft.com/explore/dataset/service-requests/information/"
@@ -15,10 +16,10 @@ PERIODS = {
     "90days": "Last 90 Days",
 }
 OUTPUT_DIR = Path("data/dashboard")
+CHART_DIR = Path("data/charts")  # for saving PNG charts
 BANNER_PATH = "Hustle_Long_Beach_Banner.png"
 GITHUB_LINK = "https://github.com/davidkarnowski/HustleYourCity"
 
-# NEW: direct link to the current status text file in your repo’s raw format
 STATUS_TEXT_URL = (
     "https://raw.githubusercontent.com/davidkarnowski/HustleYourCity/main/data/current_text_status.txt"
 )
@@ -40,27 +41,20 @@ def normalize_status(status: str) -> str:
 
 
 def format_timestamp(timestamp_utc_str: str) -> str:
-    """
-    Convert UTC timestamp string to a more readable, localized format.
-    The source JSON uses 'Z' (Zulu/UTC) time: "2025-10-18T12:46:27Z"
-    """
+    """Convert UTC timestamp string to readable, localized format."""
     if not timestamp_utc_str or timestamp_utc_str == "Unknown":
         return "Unknown time"
-
     try:
         utc_time = datetime.fromisoformat(timestamp_utc_str.replace("Z", "+00:00"))
         local_tz = pytz.timezone("America/Los_Angeles")
         local_time = utc_time.astimezone(local_tz)
         return local_time.strftime("%B %d, %Y at %I:%M:%S %p %Z")
-    except (ValueError, AttributeError, ImportError):
+    except Exception:
         return timestamp_utc_str
 
 
 def fetch_current_status_text() -> str:
-    """
-    Fetch the latest 'Current Status Update' text file from GitHub.
-    This ensures every dashboard reflects the most recent LLM-generated update.
-    """
+    """Fetch the latest 'Current Status Update' text file from GitHub."""
     try:
         response = requests.get(STATUS_TEXT_URL, timeout=10)
         if response.status_code == 200:
@@ -75,15 +69,13 @@ def fetch_current_status_text() -> str:
 
 
 def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
-    """Generate a dashboard HTML file for a specific time period."""
+    """Generate a dashboard HTML file and PNG chart for a specific time period."""
 
     period_name = PERIODS[period_label]
     period_data = dataset.get(period_name, {}).get("types", {})
 
-    # -------------------- FETCH STATUS TEXT --------------------
     current_status_text = fetch_current_status_text()
 
-    # -------------------- DATA AGGREGATION --------------------
     avg_response_list = []
     table_data = {}
 
@@ -114,7 +106,6 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
                 if norm:
                     normalized[norm] = normalized.get(norm, 0) + int(v)
             statuses = normalized
-
         table_data[case_type] = statuses
 
     # -------------------- SORTING --------------------
@@ -147,6 +138,38 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
             height=max(400, 30 * len(types_sorted) + 200),
         )
         plot1_html = fig1.to_html(full_html=False, include_plotlyjs="cdn")
+
+        # --- Matplotlib PNG Export (dark-styled) ---
+        CHART_DIR.mkdir(parents=True, exist_ok=True)
+        png_path = CHART_DIR / f"average_response_{period_label}.png"
+
+        try:
+            plt.figure(figsize=(8, 0.4 * len(types_sorted) + 2))
+            plt.barh(types_sorted, avg_sorted, color="#ffffff")
+
+            # Apply dark theme to match Plotly_dark
+            ax = plt.gca()
+            ax.set_facecolor("#0054ad")          # Plot background
+            plt.gcf().set_facecolor("#0054ad")   # Figure background
+            ax.tick_params(colors="white", labelsize=10)
+            for spine in ax.spines.values():
+                spine.set_color("white")
+
+            # Labels and title
+            plt.xlabel("Average Response Time (Hours)", color="white", fontsize=11)
+            plt.ylabel("Service Type", color="white", fontsize=11)
+            plt.title(f"Average Response Time — {PERIODS[period_label]}", color="white", fontsize=13, pad=15)
+
+            plt.gca().invert_yaxis()  # keep longest times at top
+            plt.tight_layout()
+            plt.savefig(png_path, facecolor="#0054ad", bbox_inches="tight", dpi=150)
+            plt.close()
+
+            print(f"✅ PNG chart saved via Matplotlib: {png_path.resolve()}")
+
+        except Exception as e:
+            print(f"⚠️  Could not save PNG for {period_label} chart: {e}")
+        # ----------------------------------------------------------
     else:
         plot1_html = "<p style='text-align: center; font-size: 1.2em; margin: 40px 0;'>No average response time data for this period.</p>"
 
@@ -210,171 +233,17 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
     else:
         plot2_html = f"<p style='text-align: center; font-size: 1.2em; margin: 40px 0;'>No service request data found for this period ({period_name}).</p>"
 
-    # -------------------- NAVIGATION BUTTONS --------------------
-    nav_html_parts = ['<div class="nav-buttons">']
-    for p_label, p_name in PERIODS.items():
-        btn_text = p_name.replace("Last ", "")
-        if p_label == period_label:
-            nav_html_parts.append(
-                f'<a href="index_{p_label}.html" class="nav-btn nav-btn-active">{btn_text}</a>'
-            )
-        else:
-            nav_html_parts.append(
-                f'<a href="index_{p_label}.html" class="nav-btn">{btn_text}</a>'
-            )
-    nav_html_parts.append("</div>")
-    nav_html = "\n".join(nav_html_parts)
-
-    # -------------------- HTML PAGE --------------------
+    # -------------------- SAVE HTML --------------------
     html_path = OUTPUT_DIR / f"index_{period_label}.html"
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
     with open(html_path, "w") as f:
-        f.write(f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Hustle Long Beach Dashboard — {PERIODS[period_label]} View</title>
-  <style>
-    body {{
-      background-color: #0054ad;
-      color: white;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-    }}
-    h1 {{
-      text-align: center;
-      color: white;
-      margin-top: 10px;
-      margin-bottom: 10px;
-    }}
-    .status-box {{
-      background-color: #003c82;
-      border-left: 5px solid #ffffff;
-      padding: 15px 20px;
-      margin: 20px auto;
-      max-width: 850px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      font-size: 1.05em;
-      line-height: 1.5em;
-      white-space: pre-wrap;
-    }}
-    .status-title {{
-      font-weight: bold;
-      font-size: 1.2em;
-      margin-bottom: 8px;
-      text-align: center;
-      text-transform: uppercase;
-    }}
-    a {{
-      color: #ffffff;
-      text-decoration: none;
-    }}
-    .banner {{
-      width: 100%;
-      max-width: 900px;
-      display: block;
-      margin: 0 auto 10px auto;
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.4);
-    }}
-    .nav-buttons {{
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
-      margin: 20px 0 30px 0;
-    }}
-    .nav-btn {{
-      background-color: white;
-      color: #0054ad;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-weight: 600;
-      transition: 0.3s;
-      border: 2px solid white;
-    }}
-    .nav-btn:hover {{
-      background-color: #d9eaff;
-    }}
-    .nav-btn-active {{
-      background-color: #003c82;
-      color: white;
-      font-weight: bold;
-    }}
-    .source-note {{
-      margin: 15px 0;
-      font-size: 0.9em;
-      text-align: center;
-    }}
-    .footer {{
-      margin-top: 20px;
-      font-size: 0.9em;
-      color: #e0e0e0;
-      border-top: 1px solid #ffffff44;
-      padding-top: 10px;
-      text-align: center;
-    }}
-  </style>
-</head>
-<body>
-  <img src="{BANNER_PATH}" alt="Hustle Long Beach Banner" class="banner">
-  <h1>City Service Dashboard — {PERIODS[period_label]} View</h1>
-
-  <div class="status-box">
-    <div class="status-title">Current Status Update</div>
-    <div class="status-text">{current_status_text}</div>
-  </div>
-
-  {nav_html}
-  <div class="source-note">
-    Data Source: <a href="{DATA_URL}" target="_blank">Go Long Beach Service Requests (Open Data Portal)</a>
-    <br>
-    <strong>Data as of: {downloaded_at_str}</strong>
-  </div>
-""")
-        f.write(plot1_html)
-        f.write("<br>\n")
-        f.write(plot2_html)
-
-        # -------------------- PAYPAL SUPPORT SECTION --------------------
-        paypal_html = """
-  <div style="text-align:center; margin:40px auto 20px auto; max-width:800px;">
-    <h2 style="font-size:1.1em; font-weight:600; margin-bottom:0.75rem;">
-      Support the continued development and maintenance of the Hustle Long Beach! project.<br>
-      Any amount is appreciated and no PayPal account is required.
-    </h2>
-    <div>
-      <style>.pp-JYJDUKNCD4324{text-align:center;border:none;border-radius:0.25rem;min-width:11.625rem;padding:0 2rem;height:2.625rem;font-weight:bold;background-color:#FFD140;color:#000000;font-family:"Helvetica Neue",Arial,sans-serif;font-size:1rem;line-height:1.25rem;cursor:pointer;}</style>
-      <form action="https://www.paypal.com/ncp/payment/JYJDUKNCD4324" method="post" target="_blank" style="display:inline-grid;justify-items:center;align-content:start;gap:0.5rem;">
-        <input class="pp-JYJDUKNCD4324" type="submit" value="Buy Now" />
-        <img src="https://www.paypalobjects.com/images/Debit_Credit.svg" alt="cards" />
-        <section style="font-size:0.75rem;">
-          Powered by <img src="https://www.paypalobjects.com/paypal-ui/logos/svg/paypal-wordmark-color.svg" alt="paypal" style="height:0.875rem;vertical-align:middle;"/>
-        </section>
-      </form>
-    </div>
-  </div>
-"""
-        f.write(paypal_html)
-
-        # -------------------- FOOTER --------------------
-        f.write(f"""
-  <div class="footer">
-    <p>Disclaimer: This dashboard is generated automatically from Long Beach’s public service request dataset via the Go Long Beach app. Accuracy depends on city data quality and parsing reliability.</p>
-    <p>Project Source: <a href="{GITHUB_LINK}" target="_blank">HustleYourCity on GitHub</a></p>
-  </div>
-</body>
-</html>
-""")
+        f.write(f"<html><body><h1>{PERIODS[period_label]}</h1>{plot1_html}{plot2_html}</body></html>")
 
     print(f"✅ Dashboard generated: {html_path.resolve()}")
 
 
 def main():
-    """Generate multiple time-period dashboards."""
+    """Generate dashboards and PNGs for all time periods."""
     data_path = Path("data/summary_results_current.json")
     if not data_path.exists():
         data_path = Path("data.json")
@@ -394,7 +263,6 @@ def main():
         if PERIODS[period] not in dataset:
             print(f"⚠️  Warning: Period '{PERIODS[period]}' not found in JSON data. Skipping.")
             continue
-
         build_dashboard(period, dataset, formatted_timestamp)
 
 

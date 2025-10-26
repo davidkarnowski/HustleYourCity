@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import requests
-import matplotlib.pyplot as plt  # NEW: for static PNG chart export
+from generate_charts import create_and_enhance_chart  # NEW import
 
 # -------------------- CONFIGURATION --------------------
 DATA_URL = "https://longbeach.opendatasoft.com/explore/dataset/service-requests/information/"
@@ -16,12 +16,13 @@ PERIODS = {
     "90days": "Last 90 Days",
 }
 OUTPUT_DIR = Path("data/dashboard")
-CHART_DIR = Path("data/charts")  # NEW: for saving PNG charts
+CHART_DIR = Path("data/charts")  # for saving PNG charts
 BANNER_PATH = "Hustle_Long_Beach_Banner.png"
 GITHUB_LINK = "https://github.com/davidkarnowski/HustleYourCity"
 STATUS_TEXT_URL = (
     "https://raw.githubusercontent.com/davidkarnowski/HustleYourCity/main/data/current_text_status.txt"
 )
+LOGO_PATH = Path("data/art/chart_logo.png")  # static branding logo
 # -------------------------------------------------------
 
 
@@ -138,31 +139,22 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
         )
         plot1_html = fig1.to_html(full_html=False, include_plotlyjs="cdn")
 
-        # -------------------- MATPLOTLIB EXPORT --------------------
+        # -------------------- STATIC PNG EXPORT (Matplotlib + Pillow) --------------------
         CHART_DIR.mkdir(parents=True, exist_ok=True)
         png_path = CHART_DIR / f"average_response_{period_label}.png"
+
         try:
-            plt.figure(figsize=(8, 0.4 * len(types_sorted) + 2))
-            plt.barh(types_sorted, avg_sorted, color="#ffffff")
-
-            ax = plt.gca()
-            ax.set_facecolor("#0054ad")
-            plt.gcf().set_facecolor("#0054ad")
-            ax.tick_params(colors="white", labelsize=10)
-            for spine in ax.spines.values():
-                spine.set_color("white")
-
-            plt.xlabel("Average Response Time (Hours)", color="white", fontsize=11)
-            plt.ylabel("Service Type", color="white", fontsize=11)
-            plt.title(f"Average Response Time — {PERIODS[period_label]}", color="white", fontsize=13, pad=15)
-
-            plt.gca().invert_yaxis()
-            plt.tight_layout()
-            plt.savefig(png_path, facecolor="#0054ad", bbox_inches="tight", dpi=150)
-            plt.close()
-            print(f"✅ PNG chart saved via Matplotlib: {png_path.resolve()}")
+            create_and_enhance_chart(
+                png_path=png_path,
+                service_types=types_sorted,
+                avg_values=avg_sorted,
+                title=f"Average Response Time — {PERIODS[period_label]}",
+                downloaded_at=downloaded_at_str,
+                logo_path=LOGO_PATH,
+            )
+            print(f"✅ PNG chart created and enhanced: {png_path.resolve()}")
         except Exception as e:
-            print(f"⚠️ Could not save PNG for {period_label}: {e}")
+            print(f"⚠️ Could not generate PNG for {period_label}: {e}")
 
     else:
         plot1_html = "<p style='text-align:center;font-size:1.2em;margin:40px 0;'>No average response time data for this period.</p>"

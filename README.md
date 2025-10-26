@@ -204,6 +204,8 @@ This project uses third-party open source libraries:
 - plotly (MIT License) — https://github.com/plotly/plotly.py
 - requests (Apache 2.0 License) — https://github.com/psf/requests
 - pytz (MIT License) — https://github.com/stub42/pytz
+- matplotlib (BSD-compatible / PSF-based License) — https://github.com/matplotlib/matplotlib
+
 
 All other dependencies are standard Python libraries distributed under the
 Python Software Foundation License.

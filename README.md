@@ -61,8 +61,23 @@ Parses the exported dataset to compute service request summaries, including:
 - Status breakdowns (Closed, In Progress, New, etc.)
 - Average response times (from creation to closure)
 - Aggregated time windows: **All-Time**, **90 Days**, **60 Days**, **30 Days**, **7 Days**, **1 Day**, and **4 Hours**
+- Each summary is saved as a timestamped JSON file (e.g. `summary_stats_20251016_070000.json`)
 
-Each summary is saved as a timestamped JSON file (e.g. `summary_stats_20251016_070000.json`) for future dashboard integration.
+### 3. `generate_dashboards.py`
+Generates HTML-based dashboards for each of the five data time periods included in the parsed JSON data summary. The HTML dashboard pages are hosted on GitHub pages and contain:
+- Latest LLM-infered natural language data summary
+- Interactive Plotly charts embeded in the page
+- Table of service call counts and statuses
+- A date-time stamp for when the data was collected for display
+- Support link to a PayPal payment page (to support development and maintenance)
+- GitHub project reference link (to this repo page)
+
+### 4. `generate_charts.py`
+Called as an external module during runtime and generates PNG images of charts which include:
+- Header artwork of the "Hustle Long Beach!" project logo
+- A bargraph reprsenting the current time-period's average response time data
+- The date-time stamp of when the data was collected
+- Charts are saved under ./Data/Charts and are available via the GitHub pages links for external refernce and inclusion in social media posts
 
 ---
 
@@ -71,15 +86,21 @@ Each summary is saved as a timestamped JSON file (e.g. `summary_stats_20251016_0
 The project is designed to run automatically in the cloud using **GitHub Actions** — no full VM or paid hosting required.
 
 **Workflow:**
-- Triggered every 4 hours, approximately one minute after each dataset update (Pacific Time).
-- Runs both the exporter and parser.
-- Saves each dataset and summary to the repository for historical tracking.
+- Triggered every 4 hours, approximately ten minutes after each dataset update by the City of Long Beach (Pacific Time)
+- Runs the exporter, parser and the dashboard and chart generators
+- Saves each dataset and summary to the repository for historical tracking
 
 **Example GitHub Actions Schedule (UTC):**
 ```yaml
 on:
   schedule:
-    - cron: '1 10,14,18,22,2,6 * * *'  # runs ~1 min after LB dataset update in Pacific time
+    # Los Angeles times converted to UTC (LA is UTC−7 during DST)
+    - cron: "10 14 * * *"   # 7:10 AM LA (14:10 UTC)
+    - cron: "10 18 * * *"   # 11:10 AM LA (18:10 UTC)
+    - cron: "10 22 * * *"   # 3:10 PM LA (22:10 UTC)
+    - cron: "10 2 * * *"    # 7:10 PM LA (02:10 UTC next day)
+    - cron: "10 6 * * *"    # 11:10 PM LA (06:10 UTC next day)
+    - cron: "10 10 * * *"   # 3:10 AM LA (10:10 UTC)
 ```
 
 ---

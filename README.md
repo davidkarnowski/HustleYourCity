@@ -63,7 +63,7 @@ Parses the exported dataset to compute service request summaries, including:
 - Aggregated time windows: **All-Time**, **90 Days**, **60 Days**, **30 Days**, **7 Days**, **1 Day**, and **4 Hours**
 - Each summary is saved as a timestamped JSON file (e.g. `summary_stats_20251016_070000.json`)
 
-### 3. `generate_dashboards.py`
+### 3. `generate_dashboard.py`
 Generates HTML-based dashboards for each of the five data time periods included in the parsed JSON data summary. The HTML dashboard pages are hosted on GitHub pages and contain:
 - Latest LLM-infered natural language data summary
 - Interactive Plotly charts embeded in the page

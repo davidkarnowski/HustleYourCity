@@ -1,4 +1,6 @@
 # generate_charts.py
+# Data passed from generate_dashboards script.
+
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -36,7 +38,7 @@ def create_and_enhance_chart(
     # --- Configuration ---
     chart_bg = "#0054ad"
     footer_height = 75
-    header_height = 160
+    header_height = 215
     footer_font_size = 22  # Static font size, used consistently throughout
 
     # --- Create chart ---
@@ -93,7 +95,7 @@ def enhance_chart_with_footer(
         if logo_path and Path(logo_path).exists():
             try:
                 logo = Image.open(logo_path).convert("RGBA")
-                logo_width = int(width * 0.75)
+                logo_width = int(width * 1)
                 ratio = logo_width / logo.width
                 logo = logo.resize((logo_width, int(logo.height * ratio)), Image.LANCZOS)
                 logo_x = (width - logo.width) // 2

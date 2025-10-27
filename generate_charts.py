@@ -35,9 +35,9 @@ def create_and_enhance_chart(
     """
     # --- Configuration ---
     chart_bg = "#0054ad"
-    footer_height = 160
+    footer_height = 75
     header_height = 160
-    footer_font_size = 24  # Static font size, used consistently throughout
+    footer_font_size = 22  # Static font size, used consistently throughout
 
     # --- Create chart ---
     plt.figure(figsize=(8, max(2, 0.4 * len(service_types))))
@@ -117,7 +117,7 @@ def enhance_chart_with_footer(
         text_height = ascent + descent
         text_y = header_height + height + (footer_height - text_height) // 2
 
-        draw.text((text_x, text_y), text, fill="white", font=font, align="left")
+        draw.text((text_x, text_y), text, fill="white", font=font)
 
         new_img.save(png_path)
         print(f"Chart rendered and enhanced: {png_path}")

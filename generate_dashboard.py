@@ -4,7 +4,8 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import requests
-from generate_charts import create_and_enhance_chart  # NEW import
+from generate_charts import create_and_enhance_chart
+import re
 
 # -------------------- CONFIGURATION --------------------
 DATA_URL = "https://longbeach.opendatasoft.com/explore/dataset/service-requests/information/"
@@ -54,14 +55,27 @@ def format_timestamp(timestamp_utc_str: str) -> str:
 
 
 def fetch_current_status_text() -> str:
-    """Fetch the latest status update text from GitHub."""
+    """Fetch the latest status update text from GitHub and auto-link URLs."""
     try:
         response = requests.get(STATUS_TEXT_URL, timeout=10)
         if response.status_code == 200:
             text = response.text.strip()
             if len(text) > 2000:
                 text = text[:2000] + "..."
+
+            # --- NEW: Convert URLs to clickable links ---
+            url_pattern = re.compile(
+                r'((?:https?://|www\.)[^\s<>"\']+)', re.IGNORECASE
+            )
+
+            def linkify(match):
+                url = match.group(0)
+                href = url if url.startswith("http") else "http://" + url
+                return f'<a href="{href}" target="_blank">{url}</a>'
+
+            text = url_pattern.sub(linkify, text)
             return text
+
         else:
             return f"(Unable to load status text — HTTP {response.status_code})"
     except Exception as e:

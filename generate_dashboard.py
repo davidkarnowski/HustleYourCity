@@ -63,7 +63,7 @@ def fetch_current_status_text() -> str:
             if len(text) > 2000:
                 text = text[:2000] + "..."
 
-            # --- NEW: Convert URLs to clickable links ---
+            # --- Convert URLs to clickable links ---
             url_pattern = re.compile(
                 r'((?:https?://|www\.)[^\s<>"\']+)', re.IGNORECASE
             )
@@ -75,7 +75,6 @@ def fetch_current_status_text() -> str:
 
             text = url_pattern.sub(linkify, text)
             return text
-
         else:
             return f"(Unable to load status text — HTTP {response.status_code})"
     except Exception as e:
@@ -153,7 +152,7 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
         )
         plot1_html = fig1.to_html(full_html=False, include_plotlyjs="cdn")
 
-        # -------------------- STATIC PNG EXPORT (Matplotlib + Pillow) --------------------
+        # -------------------- STATIC PNG EXPORT --------------------
         CHART_DIR.mkdir(parents=True, exist_ok=True)
         png_path = CHART_DIR / f"average_response_{period_label}.png"
 
@@ -169,7 +168,6 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
             print(f"✅ PNG chart created and enhanced: {png_path.resolve()}")
         except Exception as e:
             print(f"⚠️ Could not generate PNG for {period_label}: {e}")
-
     else:
         plot1_html = "<p style='text-align:center;font-size:1.2em;margin:40px 0;'>No average response time data for this period.</p>"
 
@@ -334,6 +332,12 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
       padding-top: 10px;
       text-align: center;
     }}
+    .privacy-note {{
+      font-size: 0.8em;
+      color: #cccccc;
+      margin-top: 8px;
+      line-height: 1.4em;
+    }}
   </style>
 </head>
 <body>
@@ -355,14 +359,14 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
         f.write(plot1_html)
         f.write("<br>\n")
         f.write(plot2_html)
-        f.write("""
+        f.write(f"""
   <div style="text-align:center; margin:40px auto 20px auto; max-width:800px;">
     <h2 style="font-size:1.1em; font-weight:600; margin-bottom:0.75rem;">
       Support the continued development and maintenance of the Hustle Long Beach! project.<br>
       Any amount is appreciated and no PayPal account is required.
     </h2>
     <div>
-      <style>.pp-JYJDUKNCD4324{text-align:center;border:none;border-radius:0.25rem;min-width:11.625rem;padding:0 2rem;height:2.625rem;font-weight:bold;background-color:#FFD140;color:#000000;font-family:"Helvetica Neue",Arial,sans-serif;font-size:1rem;line-height:1.25rem;cursor:pointer;}</style>
+      <style>.pp-JYJDUKNCD4324{{text-align:center;border:none;border-radius:0.25rem;min-width:11.625rem;padding:0 2rem;height:2.625rem;font-weight:bold;background-color:#FFD140;color:#000000;font-family:"Helvetica Neue",Arial,sans-serif;font-size:1rem;line-height:1.25rem;cursor:pointer;}}</style>
       <form action="https://www.paypal.com/ncp/payment/JYJDUKNCD4324" method="post" target="_blank" style="display:inline-grid;justify-items:center;align-content:start;gap:0.5rem;">
         <input class="pp-JYJDUKNCD4324" type="submit" value="Buy Now" />
         <img src="https://www.paypalobjects.com/images/Debit_Credit.svg" alt="cards" />
@@ -375,6 +379,9 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
   <div class="footer">
     <p>Disclaimer: This dashboard is generated automatically from Long Beach’s public service request dataset via the Go Long Beach app. Accuracy depends on city data quality and parsing reliability.</p>
     <p>Project Source: <a href="{GITHUB_LINK}" target="_blank">HustleYourCity on GitHub</a></p>
+    <div class="privacy-note">
+      Privacy & Transparency: This website does not use cookies, analytics, or trackers. No personal data is collected or stored by this site. Clicking the PayPal support link redirects to PayPal.com, which operates under its own privacy policy and may set its own cookies.
+    </div>
   </div>
 </body>
 </html>

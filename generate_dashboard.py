@@ -9,6 +9,7 @@ import re
 
 # -------------------- CONFIGURATION --------------------
 DATA_URL = "https://longbeach.opendatasoft.com/explore/dataset/service-requests/information/"
+
 PERIODS = {
     "4hours": "Last 4 Hours",
     "24hours": "Last 1 Days",
@@ -16,19 +17,25 @@ PERIODS = {
     "30days": "Last 30 Days",
     "90days": "Last 90 Days",
 }
+
 OUTPUT_DIR = Path("data/dashboard")
 CHART_DIR = Path("data/charts")  # for saving PNG charts
 BANNER_PATH = "Hustle_Long_Beach_Banner.png"
 GITHUB_LINK = "https://github.com/davidkarnowski/HustleYourCity"
-STATUS_TEXT_URL = (
-    "https://raw.githubusercontent.com/davidkarnowski/HustleYourCity/main/data/current_text_status.txt"
-)
 LOGO_PATH = Path("data/art/chart_logo.png")  # static branding logo
+
+# time-frame-specific text status URLs
+STATUS_TEXT_URLS = {
+    "4hours":  "https://hustlelongbeach.com/data/current_4_hour_text_status.txt",
+    "24hours": "https://hustlelongbeach.com/data/current_24_hour_text_status.txt",
+    "7days":   "https://hustlelongbeach.com/data/current_7_day_text_status.txt",
+    "30days":  "https://hustlelongbeach.com/data/current_30_day_text_status.txt",
+    "90days":  "https://hustlelongbeach.com/data/current_90_day_text_status.txt",
+}
 # -------------------------------------------------------
 
 
 def normalize_status(status: str) -> str:
-    """Normalize status names (combine closed variants, skip duplicates)."""
     s = status.strip().lower()
     if "duplicate" in s:
         return None
@@ -42,7 +49,6 @@ def normalize_status(status: str) -> str:
 
 
 def format_timestamp(timestamp_utc_str: str) -> str:
-    """Convert UTC timestamp to readable Pacific time."""
     if not timestamp_utc_str or timestamp_utc_str == "Unknown":
         return "Unknown time"
     try:
@@ -54,44 +60,40 @@ def format_timestamp(timestamp_utc_str: str) -> str:
         return timestamp_utc_str
 
 
-def fetch_current_status_text() -> str:
-    """Fetch the latest status update text from GitHub and auto-link URLs."""
+# ✅ Modified to accept a specific URL
+def fetch_current_status_text(url: str) -> str:
     try:
-        response = requests.get(STATUS_TEXT_URL, timeout=10)
+        response = requests.get(url, timeout=10)
         if response.status_code == 200:
             text = response.text.strip()
             if len(text) > 2000:
                 text = text[:2000] + "..."
 
-            # --- Convert URLs to clickable links ---
-            url_pattern = re.compile(
-                r'((?:https?://|www\.)[^\s<>"\']+)', re.IGNORECASE
-            )
-
+            # Convert URLs to links
+            url_pattern = re.compile(r'((?:https?://|www\.)[^\s<>"\']+)', re.IGNORECASE)
             def linkify(match):
                 url = match.group(0)
                 href = url if url.startswith("http") else "http://" + url
                 return f'<a href="{href}" target="_blank">{url}</a>'
 
-            text = url_pattern.sub(linkify, text)
-            return text
-        else:
-            return f"(Unable to load status text — HTTP {response.status_code})"
+            return url_pattern.sub(linkify, text)
+
+        return f"(Unable to load status text — HTTP {response.status_code})"
     except Exception as e:
         return f"(Error loading status text: {e})"
 
 
 def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
-    """Generate dashboard HTML + PNG chart for a specific period."""
     period_name = PERIODS[period_label]
     period_data = dataset.get(period_name, {}).get("types", {})
 
-    current_status_text = fetch_current_status_text()
+    # ✅ Load time-frame-specific LLM text
+    status_url = STATUS_TEXT_URLS.get(period_label)
+    current_status_text = fetch_current_status_text(status_url)
 
     # -------------------- DATA AGGREGATION --------------------
     avg_response_list = []
     table_data = {}
-
     for case_type, values in period_data.items():
         if not isinstance(values, dict):
             continue
@@ -119,9 +121,9 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
                 if norm:
                     normalized[norm] = normalized.get(norm, 0) + int(v)
             statuses = normalized
+
         table_data[case_type] = statuses
 
-    # -------------------- SORTING --------------------
     avg_response_list = [x for x in avg_response_list if x[1] is not None]
     avg_response_list.sort(key=lambda x: x[1], reverse=True)
     types_sorted = [x[0] for x in avg_response_list]
@@ -152,7 +154,6 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
         )
         plot1_html = fig1.to_html(full_html=False, include_plotlyjs="cdn")
 
-        # -------------------- STATIC PNG EXPORT --------------------
         CHART_DIR.mkdir(parents=True, exist_ok=True)
         png_path = CHART_DIR / f"average_response_{period_label}.png"
 
@@ -171,12 +172,10 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
     else:
         plot1_html = "<p style='text-align:center;font-size:1.2em;margin:40px 0;'>No average response time data for this period.</p>"
 
-    # -------------------- TABLE (Plotly) --------------------
+    # -------------------- TABLE --------------------
     table_data = {k: v for k, v in table_data.items() if v}
     if table_data:
-        all_statuses = sorted(
-            {s for statuses in table_data.values() for s in statuses.keys()}
-        )
+        all_statuses = sorted({s for statuses in table_data.values() for s in statuses.keys()})
         service_types = []
         column_values = {s: [] for s in all_statuses}
         total_col = []
@@ -225,7 +224,7 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
     else:
         plot2_html = f"<p style='text-align:center;font-size:1.2em;margin:40px 0;'>No service request data found for this period ({period_name}).</p>"
 
-    # -------------------- NAVIGATION BUTTONS --------------------
+    # -------------------- NAV BUTTONS --------------------
     nav_html_parts = ['<div class="nav-buttons">']
     for p_label, p_name in PERIODS.items():
         btn_text = p_name.replace("Last ", "")
@@ -391,7 +390,6 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
 
 
 def main():
-    """Generate dashboards and PNG charts for all time periods."""
     data_path = Path("data/summary_results_current.json")
     if not data_path.exists():
         data_path = Path("data.json")

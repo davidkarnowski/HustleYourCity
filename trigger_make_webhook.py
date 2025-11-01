@@ -1,23 +1,19 @@
-# Triggers Make.com Web Hooks using GitHub secret variables for the URL and API Keys
+# -----------------------------------------------------------------------
+# Trigger a Make.com webhook using GitHub Actions environment variables.
+# -----------------------------------------------------------------------
+
 
 import os
 import json
 import requests
 from datetime import datetime, timezone
-import time
 import sys
 
-def trigger_make_webhook(url: str, api_key: str, wait_seconds: int = 180, label: str = "default"):
-    """Trigger a Make.com webhook and wait for scenario to finish.
-
-    Args:
-        url (str): The Make.com webhook URL
-        api_key (str): Make.com API key (x-make-apikey)
-        wait_seconds (int): Buffer wait time after trigger
-        label (str): logging label
-    """
+def trigger_make_webhook(url: str, api_key: str, label: str = "default"):
+    # Get current UTC ISO timestamp for metadata logging and Make payload
     trigger_time = datetime.now(timezone.utc).isoformat()
 
+    # Build JSON payload
     payload = {
         "event": f"github_trigger_{label}",
         "repository": os.getenv("GITHUB_REPOSITORY", "unknown_repo"),
@@ -28,35 +24,41 @@ def trigger_make_webhook(url: str, api_key: str, wait_seconds: int = 180, label:
     print(f"[INFO] Triggering Make.com webhook ({label}) at {trigger_time}")
     print(f"[INFO] Payload: {json.dumps(payload)}")
 
+    # Headers including Make API key
     headers = {
         "Content-Type": "application/json",
         "x-make-apikey": api_key,
     }
 
     try:
+        # POST request to Make.com scenario webhook
         response = requests.post(url, headers=headers, json=payload)
         print(f"[INFO] Webhook HTTP status: {response.status_code}")
 
+        # Acceptable success responses
         if response.status_code not in (200, 202):
-            print("[ERROR] Webhook did not return success")
+            print("[ERROR] Make.com webhook returned a non-success status")
             print("Response text:", response.text)
             sys.exit(1)
 
     except Exception as e:
-        print("[ERROR] Webhook trigger failed:", str(e))
+        print("[ERROR] Exception while calling Make.com webhook:", str(e))
         sys.exit(1)
 
-    print(f"[INFO] Waiting {wait_seconds} seconds for Make.com flow + GitHub Pages update...")
-    time.sleep(wait_seconds)
-    print("[INFO] Continuing pipeline.")
+    print("[INFO] Webhook trigger completed successfully")
 
+# -----------------------------------------------------------------------
+# Main execution path: expect URL + KEY from environment variables
+# -----------------------------------------------------------------------
 if __name__ == "__main__":
-    # CLI args fallback — protects future reusability
-    url = os.getenv("MAKE_WEBHOOK_URL") or (sys.argv[1] if len(sys.argv) > 1 else None)
-    api_key = os.getenv("MAKE_WEBHOOK_KEY") or (sys.argv[2] if len(sys.argv) > 2 else None)
+    # Read secrets from environment variables
+    url = os.getenv("MAKE_WEBHOOK_URL")
+    api_key = os.getenv("MAKE_WEBHOOK_KEY")
 
+    # Validate environment variables
     if not url or not api_key:
-        print("[FATAL] Missing webhook URL or API key.")
+        print("[FATAL] Missing MAKE_WEBHOOK_URL or MAKE_WEBHOOK_KEY environment variables")
         sys.exit(1)
 
-    trigger_make_webhook(url, api_key, wait_seconds=int(os.getenv("WAIT_SECONDS", "180")), label="llm_summaries")
+    # Call the webhook trigger function
+    trigger_make_webhook(url, api_key, label="llm_summaries")

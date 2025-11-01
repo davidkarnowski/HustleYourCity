@@ -57,6 +57,21 @@ jobs:
             echo "No summary_stats_*.json file found to copy."
           fi
 
+      # Trigger Make.com inference workflow
+      - name: Trigger LLM inference workflow
+        uses: peter-evans/workflow-dispatch@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          workflow: "make_dot_com-llm_inference_webhook_trigger.yml"
+          ref: main
+
+      # Wait 3 minutes for Make.com + GitHub Pages propagation
+      - name: Wait for dashboard status input (Make workflow + GitHub Pages)
+        run: |
+          echo "Waiting 3 minutes for LLM scenario + GitHub Pages update..."
+          sleep 180
+
       - name: Generate dashboards
         run: |
           echo "Generating dashboard HTML files..."

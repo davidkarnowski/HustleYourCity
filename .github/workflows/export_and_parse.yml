@@ -72,7 +72,6 @@ jobs:
         env:
           MAKE_WEBHOOK_URL: ${{ secrets.MAKE_LLM_INFERENCE_SCENARIO_URL }}
           MAKE_WEBHOOK_KEY: ${{ secrets.MAKE_LLM_INFERENCE_SCENARIO_KEY }}
-          WAIT_SECONDS: "180"
         run: |
           echo "Triggering Make.com inference scenario via Python..."
           python trigger_make_webhook.py

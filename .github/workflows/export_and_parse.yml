@@ -41,6 +41,16 @@ jobs:
           echo "Starting full data export..."
           python full_exporter.py
 
+      - name: Prune old city export files (keep 7 most recent + files < 7 days old)
+        run: |
+          echo "Pruning city export files older than 7 days..."
+          find data/ -type f -name 'service_requests_full_*.json.gz' -mtime +7 -delete || true
+
+          echo "Ensuring only last 7 city export snapshots remain..."
+          ls -tp data/service_requests_full_*.json.gz | grep -v '/$' | tail -n +8 | xargs -I {} rm -- {} || true
+
+          echo "Prune completed."        
+
       - name: Run summary parser
         run: |
           echo "Running summary parser..."

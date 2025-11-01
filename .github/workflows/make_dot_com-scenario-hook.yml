@@ -13,7 +13,7 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repository (if script lives in repo)
+      - name: Checkout repository (script lives in repo)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install minimal webhook dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-webhook.txt
@@ -33,5 +33,9 @@ jobs:
           MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
           MAKE_WEBHOOK_KEY: ${{ secrets.MAKE_WEBHOOK_KEY }}
         run: |
-          echo "Triggering daily Make.com social automation..."
+          echo "Triggering daily Make.com social automation via Python script..."
           python trigger_make_webhook.py
+
+      - name: Summary
+        run: |
+          echo "✅ Daily social Make.com webhook triggered successfully" >> $GITHUB_STEP_SUMMARY

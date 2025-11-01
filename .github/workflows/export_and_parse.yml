@@ -61,7 +61,7 @@ jobs:
       - name: Trigger LLM inference workflow
         uses: peter-evans/workflow-dispatch@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
           repository: ${{ github.repository }}
           workflow: "make_dot_com-llm_inference_webhook_trigger.yml"
           ref: main

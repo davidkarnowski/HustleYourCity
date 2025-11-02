@@ -87,12 +87,6 @@ jobs:
           echo "Generating dashboard HTML files..."
           python generate_dashboard.py
 
-      - name: Pull latest changes to avoid non-fast-forward errors
-        run: |
-          echo "Pulling latest changes from main branch..."
-          git config pull.rebase false
-          git pull origin main || echo "Proceeding despite pull conflicts (likely none for data/)"
-
       - name: Commit and push updated data
         id: commit_push
         run: |

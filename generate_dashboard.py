@@ -32,8 +32,8 @@ STATUS_TEXT_URLS = {
     "30days":  "https://hustlelongbeach.com/data/current_30_day_text_status.txt",
     "90days":  "https://hustlelongbeach.com/data/current_90_day_text_status.txt",
 }
-# -------------------------------------------------------
 
+# -------------------------------------------------------
 
 def normalize_status(status: str) -> str:
     s = status.strip().lower()
@@ -47,7 +47,6 @@ def normalize_status(status: str) -> str:
         return "Open"
     return status.title()
 
-
 def format_timestamp(timestamp_utc_str: str) -> str:
     if not timestamp_utc_str or timestamp_utc_str == "Unknown":
         return "Unknown time"
@@ -59,8 +58,13 @@ def format_timestamp(timestamp_utc_str: str) -> str:
     except Exception:
         return timestamp_utc_str
 
+# NEW: get current time in LA for dashboard generation timestamp
+def get_dashboard_generated_time():
+    local_tz = pytz.timezone("America/Los_Angeles")
+    now_local = datetime.now(local_tz)
+    return now_local.strftime("%B %d, %Y at %I:%M:%S %p %Z")
 
-# ✅ Modified to accept a specific URL
+# Modified to accept a specific URL
 def fetch_current_status_text(url: str) -> str:
     try:
         response = requests.get(url, timeout=10)
@@ -69,7 +73,6 @@ def fetch_current_status_text(url: str) -> str:
             if len(text) > 2000:
                 text = text[:2000] + "..."
 
-            # Convert URLs to links
             url_pattern = re.compile(r'((?:https?://|www\.)[^\s<>"\']+)', re.IGNORECASE)
             def linkify(match):
                 url = match.group(0)
@@ -83,7 +86,7 @@ def fetch_current_status_text(url: str) -> str:
         return f"(Error loading status text: {e})"
 
 
-def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
+def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str, generated_at_str: str):
     period_name = PERIODS[period_label]
     period_data = dataset.get(period_name, {}).get("types", {})
 
@@ -95,6 +98,7 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
     avg_response_list = []
     table_data = {}
     for case_type, values in period_data.items():
+
         if not isinstance(values, dict):
             continue
         if "duplicate" in case_type.lower():
@@ -349,10 +353,11 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
   </div>
 
   {nav_html}
+
   <div class="source-note">
-    Data Source: <a href="{DATA_URL}" target="_blank">Go Long Beach Service Requests (Open Data Portal)</a>
-    <br>
-    <strong>Data as of: {downloaded_at_str}</strong>
+    Data Source: <a href="{DATA_URL}" target="_blank">Go Long Beach Service Requests (Open Data Portal)</a><br>
+    <strong>Data Downloaded at:</strong> {downloaded_at_str}<br>
+    <strong>Dashboard Generated at:</strong> {generated_at_str}
   </div>
 """)
         f.write(plot1_html)
@@ -375,6 +380,7 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
       </form>
     </div>
   </div>
+
   <div class="footer">
     <p>Disclaimer: This dashboard is generated automatically from Long Beach’s public service request dataset via the Go Long Beach app. Accuracy depends on city data quality and parsing reliability.</p>
     <p>Project Source: <a href="{GITHUB_LINK}" target="_blank">HustleYourCity on GitHub</a></p>
@@ -403,12 +409,14 @@ def main():
     raw_timestamp = dataset.get("downloaded_at", "Unknown")
     formatted_timestamp = format_timestamp(raw_timestamp)
 
+    # ✅ NEW: Timestamp for dashboard generation
+    generated_timestamp = get_dashboard_generated_time()
+
     for period in PERIODS.keys():
         if PERIODS[period] not in dataset:
             print(f"⚠️ Warning: Period '{PERIODS[period]}' not found in JSON data. Skipping.")
             continue
-        build_dashboard(period, dataset, formatted_timestamp)
-
+        build_dashboard(period, dataset, formatted_timestamp, generated_timestamp)
 
 if __name__ == "__main__":
     main()

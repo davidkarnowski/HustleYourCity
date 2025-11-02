@@ -1,8 +1,8 @@
-name: Automated Data Export and Summary
+name: Automated Data Export, LLM Inference, and Dashboard Update
 
 on:
   schedule:
-    # Los Angeles times converted to UTC (LA is UTC−7 during DST)
+    # Los Angeles times converted to UTC
     - cron: "10 14 * * *"   # 7:10 AM LA (14:10 UTC)
     - cron: "10 18 * * *"   # 11:10 AM LA (18:10 UTC)
     - cron: "10 22 * * *"   # 3:10 PM LA (22:10 UTC)
@@ -12,111 +12,95 @@ on:
   workflow_dispatch:
 
 jobs:
-  export_and_parse:
+  export_parse_infer_dashboard:
     runs-on: ubuntu-latest
-
     permissions:
-      contents: write  # repo commits only
+      contents: write
+      actions: read
+      id-token: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
           persist-credentials: true
           fetch-depth: 0
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install requirements (for full pipeline run)
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run exporter script
-        run: |
-          echo "Starting full data export..."
-          python full_exporter.py
+      - name: Export raw data
+        run: python full_exporter.py
 
-      - name: Prune old city export files (keep 7 most recent + files < 7 days old)
+      - name: Prune old city export files (keep 7 & <7 days)
         run: |
-          echo "Pruning city export files older than 7 days..."
+          echo "Pruning old city export files..."
           find data/ -type f -name 'service_requests_full_*.json.gz' -mtime +7 -delete || true
-
-          echo "Ensuring only last 7 export snapshots remain..."
           ls -tp data/service_requests_full_*.json.gz | grep -v '/$' | tail -n +8 | xargs -I {} rm -- {} || true
 
-          echo "✅ Pruning completed."
+      - name: Parse summary
+        run: python type_status_response_summary.py
 
-      - name: Run summary parser
+      - name: Copy latest summary as current
         run: |
-          echo "Running summary parser..."
-          python type_status_response_summary.py
-
-      - name: Duplicate latest summary file as current
-        run: |
-          echo "Copying latest summary file to summary_results_current.json..."
           latest_file=$(ls -t data/summary_stats_*.json | head -n 1)
-          if [ -f "$latest_file" ]; then
-            cp "$latest_file" data/summary_results_current.json
-            echo "Copied $latest_file to summary_results_current.json"
-          else
-            echo "No summary_stats_*.json file found!"
-          fi
+          cp "$latest_file" data/summary_results_current.json
+          echo "Copied $latest_file to summary_results_current.json"
 
-      # ✅ Safety check: ensure webhook secrets exist BEFORE calling script
-      - name: Verify webhook secrets are set
+      ## ✅ PUSH the fresh JSON BEFORE calling Make
+      - name: Commit and push raw + summary data first
         run: |
-          if [ -z "${{ secrets.MAKE_LLM_INFERENCE_SCENARIO_URL }}" ] || [ -z "${{ secrets.MAKE_LLM_INFERENCE_SCENARIO_KEY }}" ]; then
-            echo "❌ Missing Make.com webhook secrets — aborting."
-            exit 1
+          echo "Pushing data before LLM inference..."
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No data changes, skipping early commit"
+          else
+            git commit -m "Data update before LLM inference [skip ci]"
+            git push origin main || (git pull --rebase && git push origin main)
           fi
 
-      - name: Trigger Make.com LLM scenario via Python
+      ## ✅ WAIT for GH Pages to publish new JSON for Make.com
+      - name: Wait for GitHub Pages update (70 seconds)
+        run: sleep 70
+
+      ## ✅ Trigger Make.com to read new JSON and write summaries
+      - name: Trigger Make.com LLM inference
         env:
           MAKE_WEBHOOK_URL: ${{ secrets.MAKE_LLM_INFERENCE_SCENARIO_URL }}
           MAKE_WEBHOOK_KEY: ${{ secrets.MAKE_LLM_INFERENCE_SCENARIO_KEY }}
-        run: |
-          echo "Triggering Make.com inference scenario via Python..."
-          python trigger_make_webhook.py
+        run: python trigger_make_webhook.py
 
-      - name: Wait for LLM inference + Pages update
-        run: |
-          echo "⏱ Waiting 3 minutes for Make.com + GitHub Pages..."
-          sleep 180
+      ## ⏳ WAIT for Make.com to finish & push to GitHub
+      - name: Wait for Make.com to finish (~180 sec)
+        run: sleep 180
 
-      - name: Pull latest repo changes after Make.com updates
+      ## ✅ PULL new LLM summaries updated by Make.com
+      - name: Pull updated repo after Make.com writes summaries
         run: |
-          echo "Syncing repository with Make.com updates..."
           git config pull.rebase false
-          git pull origin main || echo "No remote updates or already synced"
+          git pull origin main || echo "Repo already up to date"
 
+      ## ✅ Generate dashboards based on new summaries
       - name: Generate dashboards
-        run: |
-          echo "Generating dashboard HTML files..."
-          python generate_dashboard.py
+        run: python generate_dashboard.py
 
-      - name: Commit and push updated data
-        id: commit_push
+      ## ✅ Commit dashboards
+      - name: Commit and push dashboards
         run: |
-          echo "Checking for new or modified data files..."
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ data/dashboard/
+          echo "Pushing dashboard updates..."
+          git add data/dashboard/
           if git diff --cached --quiet; then
-            echo "No changes to commit."
-            echo "updated=false" >> $GITHUB_OUTPUT
+            echo "No dashboard changes to push"
           else
-            git commit -m "Automated dataset, summary, and dashboard update [skip ci]"
-            echo "Pushing changes..."
-            git push origin main || (
-              echo "⚠️ Push failed — pulling latest and retrying..."
-              git pull --rebase origin main
-              git push origin main
-            )
-            echo "✅ Changes pushed."
-            echo "updated=true" >> $GITHUB_OUTPUT
+            git commit -m "Dashboard update after LLM inference [skip ci]"
+            git push origin main || (git pull --rebase && git push origin main)
           fi
-

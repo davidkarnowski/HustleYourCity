@@ -14,10 +14,9 @@ on:
 jobs:
   export_and_parse:
     runs-on: ubuntu-latest
+
     permissions:
-      contents: write
-      actions: read
-      id-token: write
+      contents: write  # repo commits only
 
     steps:
       - name: Checkout repository
@@ -31,7 +30,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install requirements (for full pipeline run)
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
@@ -46,10 +45,10 @@ jobs:
           echo "Pruning city export files older than 7 days..."
           find data/ -type f -name 'service_requests_full_*.json.gz' -mtime +7 -delete || true
 
-          echo "Ensuring only last 7 city export snapshots remain..."
+          echo "Ensuring only last 7 export snapshots remain..."
           ls -tp data/service_requests_full_*.json.gz | grep -v '/$' | tail -n +8 | xargs -I {} rm -- {} || true
 
-          echo "Prune completed."        
+          echo "✅ Pruning completed."
 
       - name: Run summary parser
         run: |
@@ -64,11 +63,18 @@ jobs:
             cp "$latest_file" data/summary_results_current.json
             echo "Copied $latest_file to summary_results_current.json"
           else
-            echo "No summary_stats_*.json file found to copy."
+            echo "No summary_stats_*.json file found!"
           fi
 
-      # Trigger Make.com inference workflow
-      - name: Trigger Make.com LLM scenario workflow via Python
+      # ✅ Safety check: ensure webhook secrets exist BEFORE calling script
+      - name: Verify webhook secrets are set
+        run: |
+          if [ -z "${{ secrets.MAKE_LLM_INFERENCE_SCENARIO_URL }}" ] || [ -z "${{ secrets.MAKE_LLM_INFERENCE_SCENARIO_KEY }}" ]; then
+            echo "❌ Missing Make.com webhook secrets — aborting."
+            exit 1
+          fi
+
+      - name: Trigger Make.com LLM scenario via Python
         env:
           MAKE_WEBHOOK_URL: ${{ secrets.MAKE_LLM_INFERENCE_SCENARIO_URL }}
           MAKE_WEBHOOK_KEY: ${{ secrets.MAKE_LLM_INFERENCE_SCENARIO_KEY }}
@@ -76,11 +82,16 @@ jobs:
           echo "Triggering Make.com inference scenario via Python..."
           python trigger_make_webhook.py
 
-      # Wait 3 minutes for Make.com + GitHub Pages propagation
-      - name: Wait for dashboard status input (Make workflow + GitHub Pages)
+      - name: Wait for LLM inference + Pages update
         run: |
-          echo "Waiting 3 minutes for LLM scenario + GitHub Pages update..."
+          echo "⏱ Waiting 3 minutes for Make.com + GitHub Pages..."
           sleep 180
+
+      - name: Pull latest repo changes after Make.com updates
+        run: |
+          echo "Syncing repository with Make.com updates..."
+          git config pull.rebase false
+          git pull origin main || echo "No remote updates or already synced"
 
       - name: Generate dashboards
         run: |
@@ -95,11 +106,17 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/ data/dashboard/
           if git diff --cached --quiet; then
-            echo "No new data changes detected. Skipping commit."
+            echo "No changes to commit."
             echo "updated=false" >> $GITHUB_OUTPUT
           else
             git commit -m "Automated dataset, summary, and dashboard update [skip ci]"
-            git push origin main
-            echo "Changes pushed successfully."
+            echo "Pushing changes..."
+            git push origin main || (
+              echo "⚠️ Push failed — pulling latest and retrying..."
+              git pull --rebase origin main
+              git push origin main
+            )
+            echo "✅ Changes pushed."
             echo "updated=true" >> $GITHUB_OUTPUT
           fi
+

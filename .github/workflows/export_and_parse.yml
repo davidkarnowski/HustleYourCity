@@ -94,13 +94,13 @@ jobs:
         run: python generate_dashboard.py
 
       ## ✅ Commit dashboards
-      - name: Commit and push dashboards
+      - name: Commit and push dashboards + charts
         run: |
-          echo "Pushing dashboard updates..."
-          git add data/dashboard/
+          echo "Pushing dashboard and chart updates..."
+          git add data/dashboard/ data/charts/
           if git diff --cached --quiet; then
-            echo "No dashboard changes to push"
+            echo "No dashboard or chart changes to push"
           else
-            git commit -m "Dashboard update after LLM inference [skip ci]"
+            git commit -m "Dashboard + chart update after LLM inference [skip ci]"
             git push origin main || (git pull --rebase && git push origin main)
           fi

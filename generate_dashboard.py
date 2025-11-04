@@ -3,7 +3,6 @@ import plotly.graph_objects as go
 from pathlib import Path
 from datetime import datetime
 import pytz
-import requests
 from generate_charts import create_and_enhance_chart
 import re
 
@@ -24,7 +23,7 @@ BANNER_PATH = "Hustle_Long_Beach_Banner.png"
 GITHUB_LINK = "https://github.com/davidkarnowski/HustleYourCity"
 LOGO_PATH = Path("data/art/chart_logo.png")  # static branding logo
 
-# ✅ LOCAL FILES INSTEAD OF URLS
+# ✅ Local LLM text file paths (no external fetch needed)
 STATUS_TEXT_FILES = {
     "4hours":  Path("data/current_4_hour_text_status.txt"),
     "24hours": Path("data/current_24_hour_text_status.txt"),
@@ -32,8 +31,8 @@ STATUS_TEXT_FILES = {
     "30days":  Path("data/current_30_day_text_status.txt"),
     "90days":  Path("data/current_90_day_text_status.txt"),
 }
-
 # -------------------------------------------------------
+
 
 def normalize_status(status: str) -> str:
     s = status.strip().lower()
@@ -47,6 +46,7 @@ def normalize_status(status: str) -> str:
         return "Open"
     return status.title()
 
+
 def format_timestamp(timestamp_utc_str: str) -> str:
     if not timestamp_utc_str or timestamp_utc_str == "Unknown":
         return "Unknown time"
@@ -58,40 +58,38 @@ def format_timestamp(timestamp_utc_str: str) -> str:
     except Exception:
         return timestamp_utc_str
 
-# ✅ LOCAL FILE LOADER (replaces HTTP fetch)
-def fetch_current_status_text(path: Path) -> str:
+
+def get_dashboard_generated_time():
+    local_tz = pytz.timezone("America/Los_Angeles")
+    now_local = datetime.now(local_tz)
+    return now_local.strftime("%B %d, %Y at %I:%M:%S %p %Z")
+
+
+# ✅ Read LLM summary text from local file
+def load_status_text(file_path: Path) -> str:
     try:
-        if not path.exists():
-            return "(Status text unavailable — file not found)"
-
-        text = path.read_text(encoding="utf-8", errors="ignore").strip()
-        if len(text) > 2000:
-            text = text[:2000] + "..."
-
-        # Convert URLs to clickable links
-        url_pattern = re.compile(r'((?:https?://|www\.)[^\s<>"\']+)', re.IGNORECASE)
-        def linkify(match):
-            url = match.group(0)
-            href = url if url.startswith("http") else "http://" + url
-            return f'<a href="{href}" target="_blank">{url}</a>'
-        return url_pattern.sub(linkify, text)
-
+        if file_path.exists():
+            text = file_path.read_text(encoding="utf-8").strip()
+            if len(text) > 2000:
+                text = text[:2000] + "..."
+            return text
+        return "(No status summary available)"
     except Exception as e:
         return f"(Error loading status text: {e})"
 
-def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
+
+def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str, generated_at_str: str):
     period_name = PERIODS[period_label]
     period_data = dataset.get(period_name, {}).get("types", {})
 
-    # ✅ Load local time-frame-specific text
+    # ✅ Load local LLM summary text
     status_file = STATUS_TEXT_FILES.get(period_label)
-    current_status_text = fetch_current_status_text(status_file)
+    current_status_text = load_status_text(status_file)
 
     # -------------------- DATA AGGREGATION --------------------
     avg_response_list = []
     table_data = {}
     for case_type, values in period_data.items():
-
         if not isinstance(values, dict):
             continue
         if "duplicate" in case_type.lower():
@@ -116,9 +114,8 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
             for k, v in statuses.items():
                 norm = normalize_status(k)
                 if norm:
-                    normalized[norm] = normalized.get(norm, 0) + int(v)
+                    normalized[norm] = normalized.get(normalized.get(k, 0), 0) + int(v)
             statuses = normalized
-
         table_data[case_type] = statuses
 
     avg_response_list = [x for x in avg_response_list if x[1] is not None]
@@ -173,17 +170,17 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
     table_data = {k: v for k, v in table_data.items() if v}
     if table_data:
         all_statuses = sorted({s for statuses in table_data.values() for s in statuses.keys()})
-        service_types = []
-        column_values = {s: [] for s in all_statuses}
+        service_types = list(table_data.keys())
         total_col = []
+        column_values = {s: [] for s in all_statuses}
 
-        for case_type, statuses in table_data.items():
-            service_types.append(case_type)
+        for case_type in service_types:
+            statuses = table_data[case_type]
             total = 0
             for s in all_statuses:
-                val = statuses.get(s, 0)
-                column_values[s].append(val)
-                total += val
+                v = statuses.get(s, 0)
+                column_values[s].append(v)
+                total += v
             total_col.append(total)
 
         header_vals = ["Service Type"] + all_statuses + ["Total"]
@@ -192,20 +189,8 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
         fig2 = go.Figure(
             data=[
                 go.Table(
-                    header=dict(
-                        values=header_vals,
-                        fill_color="#003c82",
-                        font=dict(color="white", size=13),
-                        align="left",
-                    ),
-                    cells=dict(
-                        values=cell_vals,
-                        fill_color=[
-                            ["#004b9b" if i % 2 == 0 else "#0054ad" for i in range(len(service_types))]
-                        ],
-                        font=dict(color="white", size=12),
-                        align="left",
-                    ),
+                    header=dict(values=header_vals, fill_color="#003c82", font=dict(color="white", size=13), align="left"),
+                    cells=dict(values=cell_vals, fill_color=[["#004b9b" if i % 2 == 0 else "#0054ad" for i in range(len(service_types))]], font=dict(color="white", size=12), align="left"),
                 )
             ]
         )
@@ -219,20 +204,17 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
         )
         plot2_html = fig2.to_html(full_html=False, include_plotlyjs=False)
     else:
-        plot2_html = f"<p style='text-align:center;font-size:1.2em;margin:40px 0;'>No service request data found for this period ({period_name}).</p>"
+        plot2_html = (
+            f"<p style='text-align:center;font-size:1.2em;margin:40px 0;'>"
+            f"No service request data found for this period ({period_name}).</p>"
+        )
 
     # -------------------- NAV BUTTONS --------------------
     nav_html_parts = ['<div class="nav-buttons">']
     for p_label, p_name in PERIODS.items():
         btn_text = p_name.replace("Last ", "")
-        if p_label == period_label:
-            nav_html_parts.append(
-                f'<a href="index_{p_label}.html" class="nav-btn nav-btn-active">{btn_text}</a>'
-            )
-        else:
-            nav_html_parts.append(
-                f'<a href="index_{p_label}.html" class="nav-btn">{btn_text}</a>'
-            )
+        active_class = "nav-btn nav-btn-active" if p_label == period_label else "nav-btn"
+        nav_html_parts.append(f'<a href="index_{p_label}.html" class="{active_class}">{btn_text}</a>')
     nav_html_parts.append("</div>")
     nav_html = "\n".join(nav_html_parts)
 
@@ -240,7 +222,7 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
     html_path = OUTPUT_DIR / f"index_{period_label}.html"
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    with open(html_path, "w") as f:
+    with open(html_path, "w", encoding="utf-8") as f:
         f.write(f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -349,7 +331,7 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
 
   <div class="source-note">
     Data Source: <a href="{DATA_URL}" target="_blank">Go Long Beach Service Requests (Open Data Portal)</a><br>
-    <strong>Data Downloaded at:</strong> {downloaded_at_str}
+    <strong>Data Downloaded at:</strong> {downloaded_at_str}<br>
     <strong>Dashboard Generated at:</strong> {generated_at_str}
   </div>
 """)
@@ -387,25 +369,25 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
 
     print(f"✅ Dashboard generated: {html_path.resolve()}")
 
+
 def main():
     data_path = Path("data/summary_results_current.json")
     if not data_path.exists():
-        data_path = Path("data.json")
-        if not data_path.exists():
-            raise FileNotFoundError("Could not find data file at data/summary_results_current.json or data.json")
+        raise FileNotFoundError("❌ Missing summary_results_current.json")
 
     print(f"Loading data from: {data_path}")
-    with open(data_path, "r") as f:
-        dataset = json.load(f)
+    dataset = json.loads(data_path.read_text())
 
     raw_timestamp = dataset.get("downloaded_at", "Unknown")
     formatted_timestamp = format_timestamp(raw_timestamp)
+    generated_timestamp = get_dashboard_generated_time()
 
     for period in PERIODS.keys():
         if PERIODS[period] not in dataset:
-            print(f"⚠️ Warning: Period '{PERIODS[period]}' not found in JSON data. Skipping.")
+            print(f"⚠️ Missing data for {PERIODS[period]}, skipping")
             continue
-        build_dashboard(period, dataset, formatted_timestamp)
+        build_dashboard(period, dataset, formatted_timestamp, generated_timestamp)
+
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,85 @@
+name: Automated Data Export, LLM Inference, and Dashboard Update
+
+on:
+  schedule:
+    # Los Angeles times converted to UTC
+    - cron: "10 14 * * *"   # 7:10 AM LA (14:10 UTC)
+    - cron: "10 18 * * *"   # 11:10 AM LA (18:10 UTC)
+    - cron: "10 22 * * *"   # 3:10 PM LA (22:10 UTC)
+    - cron: "10 2 * * *"    # 7:10 PM LA (02:10 UTC next day)
+    - cron: "10 6 * * *"    # 11:10 PM LA (06:10 UTC next day)
+    - cron: "10 10 * * *"   # 3:10 AM LA (10:10 UTC)
+  workflow_dispatch:
+
+jobs:
+  export_parse_infer_dashboard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      id-token: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 1) Export fresh raw data
+      - name: Export raw data
+        run: python full_exporter.py
+
+      # 2) Prune old city export files (storage control)
+      - name: Prune old city export files (keep 7 & <7 days)
+        run: |
+          echo "Pruning old city export files..."
+          find data/ -type f -name 'service_requests_full_*.json.gz' -mtime +7 -delete || true
+          ls -tp data/service_requests_full_*.json.gz | grep -v '/$' | tail -n +8 | xargs -I {} rm -- {} || true
+
+      # 3) Parse to summary JSON + set current pointer file
+      - name: Parse summary
+        run: python type_status_response_summary.py
+
+      - name: Copy latest summary as current
+        run: |
+          latest_file=$(ls -t data/summary_stats_*.json | head -n 1)
+          cp "$latest_file" data/summary_results_current.json
+          echo "Copied $latest_file to summary_results_current.json"
+
+      # 4) Run LLM inference locally (no Make.com)
+      - name: Run LLM inference (generate 4h/24h/7d/30d/90d text files)
+        env:
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_AI_API_KEY }}
+        run: |
+          python LLM_inference.py
+
+      # 5) Generate dashboards & charts based on local JSON + text files
+      - name: Generate dashboards and charts
+        run: python generate_dashboard.py
+
+      # 6) Single push at the end (data + dashboards + charts)
+      - name: Commit and push all updates
+        run: |
+          echo "Preparing commit for data + dashboards + charts..."
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ data/dashboard/ data/charts/
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Automated: data export, LLM summaries, dashboards & charts [skip ci]"
+            # conflict-safe push (rebase if needed due to overlapping workflows)
+            git push origin main || (git pull --rebase && git push origin main)
+          fi

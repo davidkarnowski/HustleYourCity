@@ -350,6 +350,7 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str):
   <div class="source-note">
     Data Source: <a href="{DATA_URL}" target="_blank">Go Long Beach Service Requests (Open Data Portal)</a><br>
     <strong>Data Downloaded at:</strong> {downloaded_at_str}
+    <strong>Dashboard Generated at:</strong> {generated_at_str}
   </div>
 """)
         f.write(plot1_html)

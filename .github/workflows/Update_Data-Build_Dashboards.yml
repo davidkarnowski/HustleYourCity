@@ -68,7 +68,15 @@ jobs:
       - name: Generate dashboards and charts
         run: python generate_dashboard.py
 
-      # 6) Single push at the end (data + dashboards + charts)
+      # 6) Generate about.html page as converted from README.md
+      - name: Generate About Page
+        run: |
+          set -e
+          echo "Generating About Page..."
+          python generate_about_page.py
+          echo "✅ About page generated"
+
+      # 7) Single push at the end (data + dashboards + charts)
       - name: Commit and push all updates
         run: |
           echo "Preparing commit for data + dashboards + charts..."

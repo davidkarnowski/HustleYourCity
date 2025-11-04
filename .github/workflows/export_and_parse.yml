@@ -54,6 +54,12 @@ jobs:
           cp "$latest_file" data/summary_results_current.json
           echo "Copied $latest_file to summary_results_current.json"
 
+      # ✅ Allow Pages final build to finish before workflow exits
+      - name: Wait for final GitHub Pages publish
+        run: |
+          echo "Waiting 120 seconds for final GitHub Pages build..."
+          sleep 120
+
       ## ✅ PUSH the fresh JSON BEFORE calling Make
       - name: Commit and push raw + summary data first
         run: |
@@ -69,8 +75,8 @@ jobs:
           fi
 
       ## ✅ WAIT for GH Pages to publish new JSON for Make.com
-      - name: Wait for GitHub Pages update (70 seconds)
-        run: sleep 70
+      - name: Wait for GitHub Pages update (180 seconds)
+        run: sleep 180
 
       ## ✅ Trigger Make.com to read new JSON and write summaries
       - name: Trigger Make.com LLM inference
@@ -104,3 +110,9 @@ jobs:
             git commit -m "Dashboard + chart update after LLM inference [skip ci]"
             git push origin main || (git pull --rebase && git push origin main)
           fi
+
+      # ✅ Allow Pages final build to finish before workflow exits
+      - name: Wait for final GitHub Pages publish
+        run: |
+          echo "Waiting 120 seconds for final GitHub Pages build..."
+          sleep 120

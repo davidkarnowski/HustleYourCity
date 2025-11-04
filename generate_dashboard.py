@@ -215,6 +215,10 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str, ge
         btn_text = p_name.replace("Last ", "")
         active_class = "nav-btn nav-btn-active" if p_label == period_label else "nav-btn"
         nav_html_parts.append(f'<a href="index_{p_label}.html" class="{active_class}">{btn_text}</a>')
+
+    # ✅ INSERTED ABOUT LINK
+    nav_html_parts.append('<a href="about.html" class="nav-btn">About</a>')
+
     nav_html_parts.append("</div>")
     nav_html = "\n".join(nav_html_parts)
 

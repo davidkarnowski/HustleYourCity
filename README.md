@@ -46,7 +46,7 @@ Explore the latest city service response time dashboards by time period (updated
 
 ## Core Python Scripts
 
-### 1. `full_exporter.py`
+### `full_exporter.py`
 Downloads the complete dataset from the Long Beach open data API using the JSON export endpoint.  
 Each export is saved as a timestamped file in the `data/` directory (e.g. `service_requests_full_20251016_070000.json`).
 
@@ -55,7 +55,7 @@ Each export is saved as a timestamped file in the `data/` directory (e.g. `servi
 - Log all download attempts and file information.
 - Save data atomically to prevent corruption.
 
-### 2. `type_status_response_summary.py`
+### `type_status_response_summary.py`
 Parses the exported dataset to compute service request summaries, including:
 - Total counts per case type
 - Status breakdowns (Closed, In Progress, New, etc.)
@@ -63,14 +63,14 @@ Parses the exported dataset to compute service request summaries, including:
 - Aggregated time windows: **All-Time**, **90 Days**, **60 Days**, **30 Days**, **7 Days**, **1 Day**, and **4 Hours**
 - Each summary is saved as a timestamped JSON file (e.g. `summary_stats_20251016_070000.json`)
 
-### 3. `LLM_inference.py`
+### `LLM_inference.py`
 Generates natural language data summaries using Large Language Model chat completion with the JSON data summary used for user input. A specific system prompt is provided to the model to instruct to act like a civic-minded data evaluator and provide viewers with descriptions of the data that is contained in our parsed summary:
 - Currently set to use GPT-OSS 120B via Cerebras.ai
 - A base system prompt is combined with specific time-frame adenums to create prompts that focus on the five HLB data time-frames
 - The HLB-parsed JSON data summary is provided as the user prompt
 - Natural language data summaries are produced with every city data update and for every data time frame
 
-### 4. `generate_dashboard.py`
+### `generate_dashboard.py`
 Generates HTML-based dashboards for each of the five data time periods included in the parsed JSON data summary. The HTML dashboard pages are hosted on GitHub pages and contain:
 - Latest LLM-infered natural language data summary
 - Interactive Plotly charts embeded in the page
@@ -79,7 +79,7 @@ Generates HTML-based dashboards for each of the five data time periods included 
 - Support link to a PayPal payment page (to support development and maintenance)
 - GitHub project reference link (to this repo page)
 
-### 5. `generate_charts.py`
+### `generate_charts.py`
 Called as an external module during runtime and generates PNG images of charts which include:
 - Header artwork of the "Hustle Long Beach!" project logo
 - A bargraph reprsenting the current time-period's average response time data

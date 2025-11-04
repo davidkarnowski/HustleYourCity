@@ -203,7 +203,7 @@ GitHub provides a **1 GB soft limit** for repositories and **2 GB hard limit**
 ---
 
 ## Automated Social Media Publishing Using Make.com Scenario
-![Hustle Long Beach Make.com Scenario](https://github.com/davidkarnowski/HustleYourCity/blob/main/docs/Hustle_Long_Beach-Make_dot_com-Scenario_Workflow-Social_Publsihing.png)
+![Hustle Long Beach Make.com Scenario](https://hustlelongbeach.com/docs/Hustle_Long_Beach-Make_dot_com-Scenario_Workflow-Social_Publsihing.png)
 
 ---
 

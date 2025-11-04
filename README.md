@@ -54,7 +54,7 @@ Each export is saved as a timestamped file in the `data/` directory (e.g. `servi
 - Fetch full dataset via the `exports/json` API.
 - Log all download attempts and file information.
 - Save data atomically to prevent corruption.
-
+---
 ### `type_status_response_summary.py`
 Parses the exported dataset to compute service request summaries, including:
 - Total counts per case type
@@ -62,14 +62,14 @@ Parses the exported dataset to compute service request summaries, including:
 - Average response times (from creation to closure)
 - Aggregated time windows: **All-Time**, **90 Days**, **60 Days**, **30 Days**, **7 Days**, **1 Day**, and **4 Hours**
 - Each summary is saved as a timestamped JSON file (e.g. `summary_stats_20251016_070000.json`)
-
+---
 ### `LLM_inference.py`
 Generates natural language data summaries using Large Language Model chat completion with the JSON data summary used for user input. A specific system prompt is provided to the model to instruct to act like a civic-minded data evaluator and provide viewers with descriptions of the data that is contained in our parsed summary:
 - Currently set to use GPT-OSS 120B via Cerebras.ai
 - A base system prompt is combined with specific time-frame adenums to create prompts that focus on the five HLB data time-frames
 - The HLB-parsed JSON data summary is provided as the user prompt
 - Natural language data summaries are produced with every city data update and for every data time frame
-
+---
 ### `generate_dashboard.py`
 Generates HTML-based dashboards for each of the five data time periods included in the parsed JSON data summary. The HTML dashboard pages are hosted on GitHub pages and contain:
 - Latest LLM-infered natural language data summary
@@ -78,7 +78,7 @@ Generates HTML-based dashboards for each of the five data time periods included 
 - A date-time stamp for when the data was collected for display
 - Support link to a PayPal payment page (to support development and maintenance)
 - GitHub project reference link (to this repo page)
-
+---
 ### `generate_charts.py`
 Called as an external module during runtime and generates PNG images of charts which include:
 - Header artwork of the "Hustle Long Beach!" project logo

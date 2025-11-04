@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>About Hustle Long Beach</title>
+
+<style>
+  body {
+    background-color: #0054ad;
+    color: white;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    line-height: 1.65em;
+  }
+  h1, h2, h3, h4 {
+    color: white;
+    margin-top: 25px;
+    font-weight: 600;
+  }
+  a {
+    color: white;
+    text-decoration: underline;
+  }
+  img {
+    max-width: 100%;
+    border-radius: 10px;
+  }
+  .container {
+    max-width: 900px;
+    margin: auto;
+    background: rgba(0,0,0,0.15);
+    padding: 24px 32px;
+    border-radius: 12px;
+  }
+  ul li {
+    margin-bottom: 6px;
+  }
+  pre, code {
+    background: rgba(255,255,255,0.08);
+    padding: 10px;
+    border-radius: 4px;
+    display: block;
+    font-size: 0.95em;
+    overflow-x: auto;
+  }
+  blockquote {
+    background: rgba(255,255,255,0.08);
+    padding: 10px 15px;
+    border-left: 4px solid white;
+    border-radius: 6px;
+    margin: 15px 0;
+    font-style: italic;
+  }
+  .footer {
+    margin-top: 40px;
+    font-size: 0.9em;
+    color: #e0e0e0;
+    border-top: 1px solid #ffffff44;
+    padding-top: 10px;
+    text-align: center;
+  }
+  .privacy-note {
+    font-size: 0.8em;
+    color: #cccccc;
+    margin-top: 8px;
+    line-height: 1.4em;
+  }
+  .back-link {
+    text-align: center;
+    margin-bottom: 20px;
+    display: block;
+    font-size: 1.1em;
+    font-weight: bold;
+  }
+</style>
+
+</head>
+<body>
+
+  <img src="Hustle_Long_Beach_Banner.png" alt="Hustle Long Beach Banner" class="banner">
+
+  <a href="index_24hours.html" class="back-link">← Back to Current Dashboards</a>
+
+  <div class="container">
+<h1>HustleYourCity (Long Beach)</h1>
+<h2>Overview</h2>
+<p><strong>Hustle Long Beach</strong> is a civic accountability project designed to empower citizens by providing transparent, data-driven insights into the responsiveness of city services. The project leverages open government data from the <strong>City of Long Beach, California</strong>, to calculate average response times, total service calls, and departmental workloads.</p>
+<p>This initiative aims to make service performance data accessible and meaningful for residents, journalists, and policymakers alike — encouraging constructive dialogue and efficient public resource management.</p>
+<hr />
+<h2>Project Mission</h2>
+<p>This project exists to provide <strong>citizens of Long Beach</strong> with a clear and quantitative view of how their local government responds to requests for city services. While the city already offers open data through its <a href="https://longbeach.opendatasoft.com/">Long Beach Open Data Portal</a>, much of that information is presented in tables and GIS-style maps that are difficult for the average resident to interpret.</p>
+<p>By automating the collection and analysis of these datasets, <em>Hustle Long Beach</em> transforms raw data into actionable insights — helping citizens understand where services excel and where improvements may be needed.</p>
+<hr />
+<h2>Hustle Long Beach Dashboards</h2>
+<p>Explore the latest city service response time dashboards by time period (updated every four hours):</p>
+<ul>
+<li><a href="https://HustleLongBeach.com/data/dashboard/index_4hours.html">4-Hour Dashboard</a>  </li>
+<li><a href="https://HustleLongBeach.com/data/dashboard/index_24hours.html">24-Hour Dashboard</a>  </li>
+<li><a href="https://HustleLongBeach.com/data/dashboard/index_7days.html">7-Day Dashboard</a>  </li>
+<li><a href="https://HustleLongBeach.com/data/dashboard/index_30days.html">30-Day Dashboard</a>  </li>
+<li><a href="https://HustleLongBeach.com/data/dashboard/index_90days.html">90-Day Dashboard</a></li>
+</ul>
+<hr />
+<h2>Data Source</h2>
+<ul>
+<li><strong>Dataset Name:</strong> Go Long Beach Service Requests  </li>
+<li><strong>Source:</strong> <a href="https://longbeach.opendatasoft.com/api/explore/v2.1/console">Long Beach Open Data Portal</a>  </li>
+<li><strong>API Platform:</strong> Huwise (formerly Opendatasoft)  </li>
+<li><strong>Update Frequency:</strong> Every 4 hours  </li>
+<li><strong>Timezone:</strong> America/Los_Angeles (PST/PDT)  </li>
+</ul>
+<p><strong>Typical Update Schedule:</strong><br />
+- 3:00 AM<br />
+- 7:00 AM<br />
+- 11:00 AM<br />
+- 3:00 PM<br />
+- 7:00 PM<br />
+- 11:00 PM  </p>
+<hr />
+<h2>Core Python Scripts</h2>
+<h3><code>full_exporter.py</code></h3>
+<p>Downloads the complete dataset from the Long Beach open data API using the JSON export endpoint.<br />
+Each export is saved as a timestamped file in the <code>data/</code> directory (e.g. <code>service_requests_full_20251016_070000.json</code>).</p>
+<p><strong>Functions:</strong>
+- Fetch full dataset via the <code>exports/json</code> API.
+- Log all download attempts and file information.
+- Save data atomically to prevent corruption.</p>
+<hr />
+<h3><code>type_status_response_summary.py</code></h3>
+<p>Parses the exported dataset to compute service request summaries, including:
+- Total counts per case type
+- Status breakdowns (Closed, In Progress, New, etc.)
+- Average response times (from creation to closure)
+- Aggregated time windows: <strong>All-Time</strong>, <strong>90 Days</strong>, <strong>60 Days</strong>, <strong>30 Days</strong>, <strong>7 Days</strong>, <strong>1 Day</strong>, and <strong>4 Hours</strong>
+- Each summary is saved as a timestamped JSON file (e.g. <code>summary_stats_20251016_070000.json</code>)</p>
+<hr />
+<h3><code>LLM_inference.py</code></h3>
+<p>Generates natural language data summaries using Large Language Model chat completion with the JSON data summary used for user input. A specific system prompt is provided to the model to instruct to act like a civic-minded data evaluator and provide viewers with descriptions of the data that is contained in our parsed summary:
+- Currently set to use GPT-OSS 120B via Cerebras.ai
+- A base system prompt is combined with specific time-frame adenums to create prompts that focus on the five HLB data time-frames
+- The HLB-parsed JSON data summary is provided as the user prompt
+- Natural language data summaries are produced with every city data update and for every data time frame</p>
+<hr />
+<h3><code>generate_dashboard.py</code></h3>
+<p>Generates HTML-based dashboards for each of the five data time periods included in the parsed JSON data summary. The HTML dashboard pages are hosted on GitHub pages and contain:
+- Latest LLM-infered natural language data summary
+- Interactive Plotly charts embeded in the page
+- Table of service call counts and statuses
+- A date-time stamp for when the data was collected for display
+- Support link to a PayPal payment page (to support development and maintenance)
+- GitHub project reference link (to this repo page)</p>
+<hr />
+<h3><code>generate_charts.py</code></h3>
+<p>Called as an external module during runtime and generates PNG images of charts which include:
+- Header artwork of the "Hustle Long Beach!" project logo
+- A bargraph reprsenting the current time-period's average response time data
+- The date-time stamp of when the data was collected
+- Charts are saved under ./Data/Charts and are available via the GitHub pages links for external refernce and inclusion in social media posts</p>
+<hr />
+<h2>GitHub Actions Automation</h2>
+<p>The project is designed to run automatically in the cloud using <strong>GitHub Actions</strong> — no full VM or paid hosting required.</p>
+<p><strong>Workflow:</strong>
+- Triggered every 4 hours, approximately ten minutes after each dataset update by the City of Long Beach (Pacific Time)
+- Runs the exporter, parser, LLM inference routine and dashboard and chart generators
+- Saves each dataset and summary to the repository for historical tracking</p>
+<p><strong>Example GitHub Actions Schedule (UTC):</strong></p>
+<pre><code class="language-yaml">on:
+  schedule:
+    # Los Angeles times converted to UTC (LA is UTC−7 during DST)
+    - cron: &quot;10 14 * * *&quot;   # 7:10 AM LA (14:10 UTC)
+    - cron: &quot;10 18 * * *&quot;   # 11:10 AM LA (18:10 UTC)
+    - cron: &quot;10 22 * * *&quot;   # 3:10 PM LA (22:10 UTC)
+    - cron: &quot;10 2 * * *&quot;    # 7:10 PM LA (02:10 UTC next day)
+    - cron: &quot;10 6 * * *&quot;    # 11:10 PM LA (06:10 UTC next day)
+    - cron: &quot;10 10 * * *&quot;   # 3:10 AM LA (10:10 UTC)
+</code></pre>
+<hr />
+<h2>Running Locally</h2>
+<h3>Requirements</h3>
+<p>Install dependencies:</p>
+<pre><code class="language-bash">pip install -r requirements.txt
+</code></pre>
+<p>Run full export:</p>
+<pre><code class="language-bash">python3 full_exporter.py
+</code></pre>
+<p>Parse dataset and generate summaries:</p>
+<pre><code class="language-bash">python3 type_status_response_summary.py
+</code></pre>
+<p>Outputs will appear in the <code>data/</code> folder.</p>
+<hr />
+<h2>Data Types and Categories</h2>
+<h3>Common Case Types</h3>
+<ul>
+<li>Dumped Items  </li>
+<li>Graffiti  </li>
+<li>Tree Maintenance  </li>
+<li>Street Repair  </li>
+<li>Light  </li>
+<li>Sidewalk Repair  </li>
+<li>Dead Animal Pickup  </li>
+<li>Park Maintenance  </li>
+<li>Abandoned Shopping Cart  </li>
+<li>Animal Services  </li>
+<li>Vegetation  </li>
+<li>Trash &amp; Debris  </li>
+<li>Traffic Signal  </li>
+<li>And more…</li>
+</ul>
+<h3>Common Status Values</h3>
+<ul>
+<li>Closed  </li>
+<li>In Progress  </li>
+<li>New  </li>
+<li>Cancelled  </li>
+<li>Closed Referred  </li>
+<li>Duplicate  </li>
+</ul>
+<hr />
+<h2>Data Usage and Limitations</h2>
+<p>The project does not alter, filter, or modify the official Long Beach dataset. It performs read-only operations to calculate and display performance metrics.</p>
+<p>While the calculations are accurate to the timestamps and data provided, users should note:
+- City workers may close cases under different internal conditions.<br />
+- Some records may not have complete timestamps.<br />
+- Response times are approximations based on public data.  </p>
+<hr />
+<h2>The Heart of LLM-Powered Natural Language Data Summaries</h2>
+<h3>System Prompt Used for Data Analysis by Large Language Models:</h3>
+<blockquote>
+<p>You are a third-party government accountability JSON interpreter for the HustleLongBeach community that evaluates city service response times. You are not officially part of Long Beach government and you do not represent any agency management so do not refer to the work as ours or done by “we”. You are ready to make sense of city service data from the Long Beach service call data via JSON. Evaluate the data and write a short social media update about the latest data update. We don't need all the data to be revealed and the post created should be short enough for a social media post. Let's make sure we talk about significant data changes in the past 24-hours and any case type that has significantly low or high response times (in hours). Make the data interpretable for the citizens of Long Beach. Hour counts over 72-hours should be expressed in days, weeks or months. Hour counts below 90 minutes should be measured in minutes. Remember that you are just trying to make sure the public knows about the latest response times, call totals and changes. In general, let's ignore data that is older than 90 days, but certainly report on our 1-day, 7-day and 30-day trends as the followers want recent and relevant reporting. Use facts and statistics to back up your post's language, always being factual about your response. Encourage followers to use the Go Long Beach service application to report issues to the city. Use straight-forward and simple language, nothing elaborate or flowery. </p>
+<p>When writing the LinkedIn post, use only plain text that conforms to LinkedIn's Little Text Format:
+- Do not include any emojis or non-ASCII characters (avoid symbols like 🚨📱, smart quotes, or narrow spaces).
+- Use only straight quotes (" ") and apostrophes ('), and standard hyphens (-).
+- Replace all non-breaking spaces with normal spaces.
+- Do not include markdown, HTML, or Unicode styling.
+- Separate paragraphs with a single blank line.
+- Output only the final post text, no metadata, no labels, and no code block formatting.</p>
+<p>You very last line should always include the date-time stamp of the JSON ""downloaded_at"" field. This will let users know when this summary was produced. Because this value with be zulu(utc), convert it to Pacific Time. Use the format "This data summary was updated at <insert "downloaded_at" value>.</p>
+</blockquote>
+<hr />
+<h2>Hosting and Storage</h2>
+<p>Each JSON data summary is committed to the GitHub repository as historical reference. Full export files are kept for seven days then pruned via the GitHub workflow action.<br />
+GitHub provides a <strong>1 GB soft limit</strong> for repositories and <strong>2 GB hard limit</strong></p>
+<hr />
+<h2>Automated Social Media Publishing Using Make.com Scenario</h2>
+<p><img alt="Hustle Long Beach Make.com Scenario" src="https://github.com/davidkarnowski/HustleYourCity/blob/main/docs/Hustle_Long_Beach-Make_dot_com-Scenario_Workflow-Social_Publsihing.png" /></p>
+<hr />
+<h3>Make.com Automated Workflow "Scenario" Description</h3>
+<p>This scenario is designed to post the natural language data summaries and generated PNG charts parsed from the City of Long Beach, California’s open service call dataset to Facebook and LinkedIn. The scenario is initiated by a webhook request call sent from the project’s associated GitHub Actions workflow once every 24 hours.</p>
+<p>The initial module following the Make.com webhook module is an HTTPS <strong>“Get a File”</strong> module, which retrieves the most recent natural language summary from the Hustle Long Beach! website URL.</p>
+<p>After the summary text file is downloaded, the correlated PNG file of the generated chart is downloaded and combined in LinkedIn and Facebook modules in the scenario for automated publishing.</p>
+<h4>Facebook Pages Status Publishing</h4>
+<p>The routed <code>LLM_Response</code> variable is also sent to a Make.com connector for <strong>Facebook Pages</strong>, publishing the latest inferred status update to the <strong>Hustle Long Beach</strong> community page.</p>
+<h4>LinkedIn Organization Stauts Publishing</h4>
+<p>The final route for the <code>LLM_Response</code> variable is a Make.com connector for <strong>LinkedIn</strong>, where the same inferred chat completion is published on the <strong>Hustle Long Beach</strong> organization page.</p>
+<hr />
+<h2>Civic Impact</h2>
+<p>This project is built for <strong>citizen accountability and transparency</strong>.<br />
+By providing simple, quantitative data on city responsiveness, we hope to:
+- Empower citizens to understand how their city serves them.<br />
+- Encourage resource prioritization where service lags occur.<br />
+- Recognize departments and staff who perform exceptionally well.  </p>
+<hr />
+<h2>Support Hustle Long Beach Development</h2>
+<p>If you want to support the continued development and maintenance of this project, you can send an amount of your choosing to our PayPal account. You pick how much support to provide. No PayPal account required.
+<a href="https://www.paypal.com/ncp/payment/JYJDUKNCD4324">Support Hustle Long Beach! via PayPal - Click Here</a></p>
+<hr />
+<h2>License</h2>
+<p>This project uses third-party open source libraries:</p>
+<ul>
+<li>plotly (MIT License) — https://github.com/plotly/plotly.py</li>
+<li>requests (Apache 2.0 License) — https://github.com/psf/requests</li>
+<li>pytz (MIT License) — https://github.com/stub42/pytz</li>
+<li>matplotlib (BSD-compatible / PSF-based License) — https://github.com/matplotlib/matplotlib</li>
+</ul>
+<p>All other dependencies are standard Python libraries distributed under the
+Python Software Foundation License.</p>
+  </div>
+
+  <p style="text-align:center; margin:20px 0; font-size:0.9em;">
+    Documentation generated on November 04, 2025 at 07:25:27 AM PST
+  </p>
+
+  <div style="text-align:center; margin:40px auto 20px auto; max-width:800px;">
+    <h2 style="font-size:1.1em; font-weight:600; margin-bottom:0.75rem;">
+      Support the continued development and maintenance of the Hustle Long Beach! project.<br>
+      Any amount is appreciated and no PayPal account is required.
+    </h2>
+
+    <div>
+      <style>.pp-JYJDUKNCD4324{text-align:center;border:none;border-radius:0.25rem;min-width:11.625rem;padding:0 2rem;height:2.625rem;font-weight:bold;background-color:#FFD140;color:#000000;font-family:"Helvetica Neue",Arial,sans-serif;font-size:1rem;line-height:1.25rem;cursor:pointer;}</style>
+      <form action="https://www.paypal.com/ncp/payment/JYJDUKNCD4324" method="post" target="_blank" style="display:inline-grid;justify-items:center;align-content:start;gap:0.5rem;">
+        <input class="pp-JYJDUKNCD4324" type="submit" value="Buy Now" />
+        <img src="https://www.paypalobjects.com/images/Debit_Credit.svg" alt="cards" />
+        <section style="font-size:0.75rem;">
+          Powered by <img src="https://www.paypalobjects.com/paypal-ui/logos/svg/paypal-wordmark-color.svg" alt="paypal" style="height:0.875rem;vertical-align:middle;"/>
+        </section>
+      </form>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Disclaimer: This page is generated automatically from the project README and may update based on repository changes.</p>
+    <p>Project Source: <a href="https://github.com/davidkarnowski/HustleYourCity" target="_blank">HustleYourCity on GitHub</a></p>
+    <div class="privacy-note">
+      Privacy & Transparency: This website does not use cookies, analytics, or trackers. No personal data is collected or stored by this site.
+      Clicking the PayPal support link redirects to PayPal.com, which operates under its own privacy policy and may set its own cookies.
+    </div>
+  </div>
+
+</body>
+</html>

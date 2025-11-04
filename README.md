@@ -19,11 +19,11 @@ By automating the collection and analysis of these datasets, *Hustle Long Beach*
 
 Explore the latest city service response time dashboards by time period (updated every four hours):
 
-- [4-Hour Dashboard](https://davidkarnowski.github.io/HustleYourCity/data/dashboard/index_4hours.html)  
-- [24-Hour Dashboard](https://davidkarnowski.github.io/HustleYourCity/data/dashboard/index_24hours.html)  
-- [7-Day Dashboard](https://davidkarnowski.github.io/HustleYourCity/data/dashboard/index_7days.html)  
-- [30-Day Dashboard](https://davidkarnowski.github.io/HustleYourCity/data/dashboard/index_30days.html)  
-- [90-Day Dashboard](https://davidkarnowski.github.io/HustleYourCity/data/dashboard/index_90days.html)
+- [4-Hour Dashboard](https://HustleLongBeach.com/data/dashboard/index_4hours.html)  
+- [24-Hour Dashboard](https://HustleLongBeach.com/data/dashboard/index_24hours.html)  
+- [7-Day Dashboard](https://HustleLongBeach.com/data/dashboard/index_7days.html)  
+- [30-Day Dashboard](https://HustleLongBeach.com/data/dashboard/index_30days.html)  
+- [90-Day Dashboard](https://HustleLongBeach.com/data/dashboard/index_90days.html)
 
 ---
 
@@ -63,7 +63,14 @@ Parses the exported dataset to compute service request summaries, including:
 - Aggregated time windows: **All-Time**, **90 Days**, **60 Days**, **30 Days**, **7 Days**, **1 Day**, and **4 Hours**
 - Each summary is saved as a timestamped JSON file (e.g. `summary_stats_20251016_070000.json`)
 
-### 3. `generate_dashboard.py`
+### 3. `LLM_inference.py`
+Generates natural language data summaries using Large Language Model chat completion with the JSON data summary used for user input. A specific system prompt is provided to the model to instruct to act like a civic-minded data evaluator and provide viewers with descriptions of the data that is contained in our parsed summary:
+- Currently set to use GPT-OSS 120B via Cerebras.ai
+- A base system prompt is combined with specific time-frame adenums to create prompts that focus on the five HLB data time-frames
+- The HLB-parsed JSON data summary is provided as the user prompt
+- Natural language data summaries are produced with every city data update and for every data time frame
+
+### 4. `generate_dashboard.py`
 Generates HTML-based dashboards for each of the five data time periods included in the parsed JSON data summary. The HTML dashboard pages are hosted on GitHub pages and contain:
 - Latest LLM-infered natural language data summary
 - Interactive Plotly charts embeded in the page
@@ -72,7 +79,7 @@ Generates HTML-based dashboards for each of the five data time periods included 
 - Support link to a PayPal payment page (to support development and maintenance)
 - GitHub project reference link (to this repo page)
 
-### 4. `generate_charts.py`
+### 5. `generate_charts.py`
 Called as an external module during runtime and generates PNG images of charts which include:
 - Header artwork of the "Hustle Long Beach!" project logo
 - A bargraph reprsenting the current time-period's average response time data
@@ -87,7 +94,7 @@ The project is designed to run automatically in the cloud using **GitHub Actions
 
 **Workflow:**
 - Triggered every 4 hours, approximately ten minutes after each dataset update by the City of Long Beach (Pacific Time)
-- Runs the exporter, parser and the dashboard and chart generators
+- Runs the exporter, parser, LLM inference routine and dashboard and chart generators
 - Saves each dataset and summary to the repository for historical tracking
 
 **Example GitHub Actions Schedule (UTC):**
@@ -166,27 +173,9 @@ While the calculations are accurate to the timestamps and data provided, users s
 - Response times are approximations based on public data.  
 
 ---
+## The Heart of LLM-Powered Natural Language Data Summaries
 
-## Hosting and Storage
-
-Each export and summary is committed to the GitHub repository as historical reference.  
-GitHub provides a **1 GB soft limit** for repositories and **2 GB hard limit** for overall storage; regular pruning or external storage may be added as the dataset grows.
-
----
-
-## Automated AI-Powered Analsyis Publishing Using LLM Inference and Make.com Scenario
-![Hustle Long Beach Make.com Scenario](https://github.com/davidkarnowski/HustleYourCity/blob/main/docs/Hustle_Long_Beach-Make_dot_com-Scenario_Workflow.png)
-
----
-
-### Make.com Automated Workflow "Scenario" Description  
-This scenario is designed to produce LLM completions based on structured data input parsed from the City of Long Beach, California’s open service call dataset. The scenario is initiated by a webhook request call sent from the project’s associated GitHub Actions workflow once every 24 hours.
-
-The initial module following the Make.com webhook module is an HTTPS **“Get a File”** module, which retrieves the most recent parsed data from a public GitHub URL. The data file itself is a **JSON-formatted summary** produced by a parsing script that runs every four hours as a GitHub Action — matching the update frequency of the City of Long Beach dataset.
-
-After the JSON file is downloaded, it is used as input to a **Cerebras.ai** module, where it is combined with a system prompt to produce a chat completion based on the structured data.
-
-System Prompt Used for Data Analysis by Large Language Models:
+### System Prompt Used for Data Analysis by Large Language Models:
 
 >You are a third-party government accountability JSON interpreter for the HustleLongBeach community that evaluates city service response times. You are not officially part of Long Beach government and you do not represent any agency management so do not refer to the work as ours or done by “we”. You are ready to make sense of city service data from the Long Beach service call data via JSON. Evaluate the data and write a short social media update about the latest data update. We don't need all the data to be revealed and the post created should be short enough for a social media post. Let's make sure we talk about significant data changes in the past 24-hours and any case type that has significantly low or high response times (in hours). Make the data interpretable for the citizens of Long Beach. Hour counts over 72-hours should be expressed in days, weeks or months. Hour counts below 90 minutes should be measured in minutes. Remember that you are just trying to make sure the public knows about the latest response times, call totals and changes. In general, let's ignore data that is older than 90 days, but certainly report on our 1-day, 7-day and 30-day trends as the followers want recent and relevant reporting. Use facts and statistics to back up your post's language, always being factual about your response. Encourage followers to use the Go Long Beach service application to report issues to the city. Use straight-forward and simple language, nothing elaborate or flowery. 
 >
@@ -200,11 +189,26 @@ System Prompt Used for Data Analysis by Large Language Models:
 >
 >You very last line should always include the date-time stamp of the JSON ""downloaded_at"" field. This will let users know when this summary was produced. Because this value with be zulu(utc), convert it to Pacific Time. Use the format "This data summary was updated at <insert "downloaded_at" value>.
 
+---
 
-The model used by the Cerebras call is currently set to **GPT-OSS 120B**. The output of this inference is stored as an `LLM_Response` variable in the subsequent “tools” module, which then routes the response to three different outputs: **GitHub**, **Facebook Pages**, and **LinkedIn**.
+## Hosting and Storage
 
-#### GitHub LLM Response Update  
-The routed GitHub flow contains two modules. The first makes an HTTPS request to the public project repository to retrieve the SHA hash value of the most recently updated `current_text_status.txt` file. The second performs an HTTPS PUT request to update that file with the latest `LLM_Response` variable.
+Each JSON data summary is committed to the GitHub repository as historical reference. Full export files are kept for seven days then pruned via the GitHub workflow action.  
+GitHub provides a **1 GB soft limit** for repositories and **2 GB hard limit**
+
+---
+
+## Automated AI-Powered Analsyis Publishing Using LLM Inference and Make.com Scenario
+![Hustle Long Beach Make.com Scenario](https://github.com/davidkarnowski/HustleYourCity/blob/main/docs/Hustle_Long_Beach-Make_dot_com-Scenario_Workflow-Social_Publsihing.png)
+
+---
+
+### Make.com Automated Workflow "Scenario" Description  
+This scenario is designed to post the natural language data summaries and generated PNG charts parsed from the City of Long Beach, California’s open service call dataset to Facebook and LinkedIn. The scenario is initiated by a webhook request call sent from the project’s associated GitHub Actions workflow once every 24 hours.
+
+The initial module following the Make.com webhook module is an HTTPS **“Get a File”** module, which retrieves the most recent natural language summary from the Hustle Long Beach! website URL.
+
+After the summary text file is downloaded, the correlated PNG file of the generated chart is downloaded and combined in LinkedIn and Facebook modules in the scenario for automated publishing.
 
 #### Facebook Pages Status Publishing
 The routed `LLM_Response` variable is also sent to a Make.com connector for **Facebook Pages**, publishing the latest inferred status update to the **Hustle Long Beach** community page.

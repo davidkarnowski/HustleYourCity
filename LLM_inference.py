@@ -1,20 +1,27 @@
 # ==========================================================
-# Hustle Long Beach — Cerebras LLM Inference Module
-# Generates natural-language summaries for civic-data dashboard
+# Hustle Long Beach — Cerebras LLM Inference Module (Resilient v2)
+# Adds exponential backoff and fallback file creation if service unavailable
 # ==========================================================
 
 import os
 import json
+import time
 import requests
 from pathlib import Path
-
 
 # ==========================================================
 # API configuration
 # ==========================================================
 CEREBRAS_API_URL = "https://api.cerebras.ai/v1/chat/completions"
 DEFAULT_MODEL = "gpt-oss-120b"
-
+MAX_RETRIES = 10            # total attempts including first
+INITIAL_DELAY = 30         # seconds before first retry
+FALLBACK_MESSAGE = (
+    "Automated data summaries are temporarily unavailable.\n"
+    "The Hustle Long Beach dashboard will update once the LLM service is back online.\n"
+    "All table data and metrics have still been refreshed successfully.\n"
+    "Please check back soon for a new update."
+)
 
 # ==========================================================
 # Base system prompt
@@ -32,7 +39,6 @@ When writing the social media post, use only plain text that conforms to LinkedI
 
 Your very last line should always include the date-time stamp of the JSON "downloaded_at" field. This will let users know when this summary was produced. Because this value will be zulu(utc), convert it to current Los Angeles time (PST/PDT). Use the format "This data summary was updated at <insert \"downloaded_at\" value>."
 """.strip()
-
 
 # ==========================================================
 # Time-frame addenda
@@ -55,15 +61,14 @@ This summary will focus on significant data changes only in the past 90 days. Us
 """,
 }
 
-
 # ==========================================================
-# LLM inference function with output file option
+# LLM inference function with exponential retry + fallback
 # ==========================================================
 def run_cerebras_inference(
     system_prompt: str,
     timeframe_prompt: str,
     user_prompt: str,
-    output_file: str = None,
+    output_file: str,
     model: str = DEFAULT_MODEL
 ) -> str:
     final_prompt = (
@@ -75,7 +80,9 @@ def run_cerebras_inference(
 
     api_key = os.getenv("CEREBRAS_API_KEY")
     if not api_key:
-        raise RuntimeError("Missing environment variable: CEREBRAS_API_KEY")
+        print("❌ Missing environment variable: CEREBRAS_API_KEY")
+        _write_fallback(output_file)
+        return FALLBACK_MESSAGE
 
     payload = {
         "model": model,
@@ -93,18 +100,50 @@ def run_cerebras_inference(
         "Content-Type": "application/json",
     }
 
-    res = requests.post(CEREBRAS_API_URL, headers=headers, json=payload, timeout=60)
-    if res.status_code != 200:
-        raise RuntimeError(f"Cerebras error {res.status_code}: {res.text}")
+    attempt = 0
+    delay = INITIAL_DELAY
 
-    text = res.json()["choices"][0]["message"]["content"].strip()
+    while attempt < MAX_RETRIES:
+        attempt += 1
+        print("\n------------------------------------------------------")
+        print(f"[Attempt {attempt}/{MAX_RETRIES}] Contacting Cerebras API...")
 
-    if output_file:
-        Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-        with open(output_file, "w") as f:
-            f.write(text)
+        try:
+            res = requests.post(CEREBRAS_API_URL, headers=headers, json=payload, timeout=60)
+            print(f"Response code: {res.status_code}")
 
-    return text
+            if res.status_code == 200:
+                text = res.json()["choices"][0]["message"]["content"].strip()
+                Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+                with open(output_file, "w") as f:
+                    f.write(text)
+                print(f"✅ Successful response received and saved to {output_file}")
+                return text
+            else:
+                print(f"⚠️ Cerebras returned error {res.status_code}: {res.text}")
+
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Request failed: {e}")
+
+        if attempt < MAX_RETRIES:
+            print(f"⏳ Waiting {delay} seconds before retry...")
+            time.sleep(delay)
+            delay *= 2  # exponential backoff
+
+    # All retries exhausted
+    print("❌ Cerebras service unavailable after multiple attempts. Writing fallback text file.")
+    _write_fallback(output_file)
+    return FALLBACK_MESSAGE
+
+
+# ==========================================================
+# Helper: write fallback file
+# ==========================================================
+def _write_fallback(output_file: str):
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+    with open(output_file, "w") as f:
+        f.write(FALLBACK_MESSAGE)
+    print(f"⚙️  Fallback file written: {output_file}")
 
 
 # ==========================================================
@@ -113,7 +152,8 @@ def run_cerebras_inference(
 if __name__ == "__main__":
     data_path = Path("data/summary_results_current.json")
     if not data_path.exists():
-        raise FileNotFoundError("Missing data/summary_results_current.json")
+        print("❌ Missing data/summary_results_current.json — cannot proceed.")
+        exit(0)
 
     with open(data_path, "r") as f:
         json_payload = f.read()
@@ -128,12 +168,16 @@ if __name__ == "__main__":
 
     for timeframe, prompt in TIMEFRAME_PROMPTS.items():
         outfile = output_map[timeframe]
+        print("\n======================================================")
+        print(f"🚀 Generating {timeframe} summary → {outfile}")
+        print("======================================================")
 
-        print(f"Generating {timeframe} → {outfile}")
         text = run_cerebras_inference(
             HUSTLE_BASE_PROMPT,
             prompt,
             json_payload,
             output_file=outfile
         )
-        print(f"✅ Saved: {outfile}")
+        print(f"✅ Output ready for {timeframe} → {outfile}")
+
+    print("\n🏁 Completed all inference tasks — continuing dashboard build.")

@@ -2,8 +2,8 @@ name: Daily Social Media Post Make.com Scenario Web Hook Trigger
 
 on:
   schedule:
-    # Runs 8:00 AM Los Angeles (UTC−7 during DST)
-    - cron: "0 15 * * *"
+    # Runs at 8:45 AM Los Angeles (16:45 UTC during PST)
+    - cron: "45 16 * * *"
   workflow_dispatch:
 
 jobs:

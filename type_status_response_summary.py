@@ -7,8 +7,7 @@ and uncompressed (.json) formats — and computes:
 - Average response times
 - Windowed summaries (All-time, 90d, 60d, 30d, 7d, 1d, 4h)
 
-Writes summary JSON named after the same timestamp as the export file, e.g.:
-    data/summary_stats_2025-10-16T1200Z.json
+Writes summary JSON named after the same timestamp as the export file.
 
 Logs all runs to:
     data/logs/parse_log_YYYY-MM-DD.txt
@@ -22,7 +21,7 @@ import tempfile
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict, Counter
-import requests   # <-- NEW IMPORT
+import requests   # Needed for metadata fetch
 
 DATA_DIR = "data"
 LOG_DIR = "data/logs"
@@ -56,7 +55,7 @@ def extract_timestamp_from_filename(filename):
 
 
 def find_latest_export_file(data_dir=DATA_DIR):
-    """Find latest timestamped export (supports .json and .json.gz)."""
+    """Find latest timestamped export (.json or .json.gz)."""
     files = list(Path(data_dir).glob("service_requests_full_*.json*"))
     if not files:
         raise FileNotFoundError(f"No export files found in {data_dir}")
@@ -89,11 +88,7 @@ def parse_datetime_iso(s):
 
 
 def load_export_readonly(export_path):
-    """
-    Load JSON or GZipped JSON export file.
-    Detects compression automatically.
-    Returns list of records.
-    """
+    """Load JSON or GZipped JSON export file."""
     if str(export_path).endswith(".gz"):
         with gzip.open(export_path, "rt", encoding="utf-8") as fh:
             data = json.load(fh)
@@ -101,22 +96,29 @@ def load_export_readonly(export_path):
         with open(export_path, "r", encoding="utf-8") as fh:
             data = json.load(fh)
 
-    return data["results"] if isinstance(data, dict) and "results" in data else data
+    if isinstance(data, dict) and "results" in data:
+        return data["results"]
+    return data
 
 
 # ------------------------------
-# NEW: Fetch authoritative timestamps from API
+# NEW: Correct, auto-detecting metadata fetch
 # ------------------------------
 
-def fetch_source_update_timestamps():
+def fetch_source_update_timestamps(verbose=True):
     """
-    Query Opendatasoft API for:
-        - data_processed
-        - metadata_processed
-        - modified
+    Fetch dataset metadata from Opendatasoft, supporting:
+      - Direct JSON (Python requests)
+      - Make.com wrapped list format
 
-    Returns dict with UTC-normalized timestamps (or None on failure).
+    Extract:
+      - data_processed
+      - metadata_processed
+      - modified
+
+    Return all normalized to UTC Z format.
     """
+
     url = "https://longbeach.opendatasoft.com/api/explore/v2.1/catalog/datasets/service-requests"
 
     output = {
@@ -125,24 +127,78 @@ def fetch_source_update_timestamps():
         "modified_at": None
     }
 
+    if verbose:
+        print("\n==========================================")
+        print("🔎 Fetching dataset metadata from Opendatasoft")
+        print("==========================================")
+        print(f"➡ Requesting URL:\n    {url}\n")
+
     try:
         resp = requests.get(url, timeout=10)
+
+        if verbose:
+            print(f"🔄 HTTP Response Status: {resp.status_code}")
+            print(f"🔄 Headers returned: {list(resp.headers.keys())}")
+            print("🔄 Parsing JSON payload...")
+
         resp.raise_for_status()
         payload = resp.json()
 
-        if isinstance(payload, list):
-            payload = payload[0]
+        if verbose:
+            print("\n--- BEGIN RAW METADATA PAYLOAD (TRUNCATED) ---")
+            try:
+                print(json.dumps(payload, indent=2)[:2000])
+            except Exception:
+                print("(Payload not printable)")
+            print("--- END RAW METADATA PAYLOAD ---\n")
 
-        data = payload.get("data", {})
-        metas = data.get("metas", {})
-        default = metas.get("default", {})
+        # ------------------------------------------------------
+        # FORMAT DETECTION
+        # ------------------------------------------------------
+        # Case A — Make.com wrapper
+        if isinstance(payload, list) and len(payload) > 0 and "data" in payload[0]:
+            metadata_root = payload[0].get("data", {})
+            if verbose:
+                print("📦 Detected Make.com wrapper format.")
+        # Case B — direct JSON containing fields, metas, etc.
+        elif isinstance(payload, dict) and "metas" in payload:
+            metadata_root = payload
+            if verbose:
+                print("📦 Detected direct Opendatasoft API format (Python).")
+        # Case C — maybe nested under payload["data"]
+        elif isinstance(payload, dict) and "data" in payload and "metas" in payload["data"]:
+            metadata_root = payload["data"]
+            if verbose:
+                print("📦 Detected alternate API format: payload['data'] contains metadata.")
+        else:
+            metadata_root = {}
+            if verbose:
+                print("❌ Could not detect metadata format. No 'metas' found.")
 
-        # Extract raw strings
-        dp = default.get("data_processed")
-        mp = default.get("metadata_processed")
-        md = default.get("modified")
+        # Print keys found
+        if verbose:
+            print(f"🔍 metadata_root keys: {list(metadata_root.keys())}")
 
-        # Normalize each (if available)
+        default_meta = {}
+        if "metas" in metadata_root and "default" in metadata_root["metas"]:
+            default_meta = metadata_root["metas"]["default"]
+
+        # Print inner keys
+        if verbose:
+            print(f"🔍 default_meta keys: {list(default_meta.keys())}\n")
+
+        # Extract raw timestamp strings
+        dp = default_meta.get("data_processed")
+        mp = default_meta.get("metadata_processed")
+        md = default_meta.get("modified")
+
+        if verbose:
+            print("📌 Raw metadata timestamps found:")
+            print(f"   data_processed:      {dp}")
+            print(f"   metadata_processed:  {mp}")
+            print(f"   modified:            {md}\n")
+
+        # Normalize timestamps if present
         for key, raw in [
             ("data_processed_at", dp),
             ("metadata_processed_at", mp),
@@ -152,9 +208,21 @@ def fetch_source_update_timestamps():
                 dt = parse_datetime_iso(raw)
                 if dt:
                     output[key] = dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    if verbose:
+                        print(f"✅ Parsed {key}: {output[key]}")
+                else:
+                    if verbose:
+                        print(f"❌ Failed to parse {key} with raw value: {raw}")
+
+        if verbose:
+            print("\n🎉 Completed metadata extraction:")
+            print(json.dumps(output, indent=2))
+            print("==========================================\n")
 
     except Exception as e:
         log_event(f"WARNING: Could not fetch source timestamps: {e}")
+        if verbose:
+            print(f"❌ ERROR during metadata request: {e}")
 
     return output
 
@@ -219,7 +287,7 @@ def print_type_table(label, summary_by_type):
 # ------------------------------
 
 def write_json_atomically(obj, dest_path):
-    """Write JSON safely to prevent corruption on partial writes."""
+    """Write JSON safely with temp file swap."""
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(prefix="tmp_summary_", suffix=".json", dir=os.path.dirname(dest_path))
     try:
@@ -262,9 +330,6 @@ def main():
 
     now = datetime.now(timezone.utc)
 
-    # --------------------------------------------------------
-    # Windows
-    # --------------------------------------------------------
     windows = [
         ("All-Time", records),
         ("Last 90 Days", [r for r in records if (d := parse_datetime_iso(r.get("createddate"))) and d >= now - timedelta(days=90)]),
@@ -285,16 +350,18 @@ def main():
                     "total": s["total"],
                     "status_counts": dict(s["status_counts"]),
                     "avg_response_hours": s["avg_response_hours"]
-                } for t, s in agg.items()
+                }
+                for t, s in agg.items()
             }
         }
 
         log_event(f"{label}: {len(subset)} records summarized.")
 
-    # --------------------------------------------------------
-    # Append authoritative timestamps + download time
-    # --------------------------------------------------------
-    source_ts = fetch_source_update_timestamps()
+    # ---------------------------------------------
+    # Fetch authoritative metadata timestamps
+    # ---------------------------------------------
+    print("\n📡 Collecting authoritative source timestamps from Opendatasoft...")
+    source_ts = fetch_source_update_timestamps(verbose=True)
 
     summary_data["source_update_times"] = {
         "data_processed_at": source_ts.get("data_processed_at"),

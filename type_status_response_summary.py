@@ -1,5 +1,5 @@
 """
-type_status_response_summary_safe.py
+type_status_response_summary.py
 
 Parses the most recent full export (timestamped) — supports both compressed (.json.gz)
 and uncompressed (.json) formats — and computes:
@@ -22,6 +22,7 @@ import tempfile
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict, Counter
+import requests   # <-- NEW IMPORT
 
 DATA_DIR = "data"
 LOG_DIR = "data/logs"
@@ -101,6 +102,61 @@ def load_export_readonly(export_path):
             data = json.load(fh)
 
     return data["results"] if isinstance(data, dict) and "results" in data else data
+
+
+# ------------------------------
+# NEW: Fetch authoritative timestamps from API
+# ------------------------------
+
+def fetch_source_update_timestamps():
+    """
+    Query Opendatasoft API for:
+        - data_processed
+        - metadata_processed
+        - modified
+
+    Returns dict with UTC-normalized timestamps (or None on failure).
+    """
+    url = "https://longbeach.opendatasoft.com/api/explore/v2.1/catalog/datasets/service-requests"
+
+    output = {
+        "data_processed_at": None,
+        "metadata_processed_at": None,
+        "modified_at": None
+    }
+
+    try:
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        payload = resp.json()
+
+        if isinstance(payload, list):
+            payload = payload[0]
+
+        data = payload.get("data", {})
+        metas = data.get("metas", {})
+        default = metas.get("default", {})
+
+        # Extract raw strings
+        dp = default.get("data_processed")
+        mp = default.get("metadata_processed")
+        md = default.get("modified")
+
+        # Normalize each (if available)
+        for key, raw in [
+            ("data_processed_at", dp),
+            ("metadata_processed_at", mp),
+            ("modified_at", md)
+        ]:
+            if raw:
+                dt = parse_datetime_iso(raw)
+                if dt:
+                    output[key] = dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    except Exception as e:
+        log_event(f"WARNING: Could not fetch source timestamps: {e}")
+
+    return output
 
 
 # ------------------------------
@@ -207,7 +263,7 @@ def main():
     now = datetime.now(timezone.utc)
 
     # --------------------------------------------------------
-    # Add the new "Last 4 Hours" window to the existing lineup
+    # Windows
     # --------------------------------------------------------
     windows = [
         ("All-Time", records),
@@ -236,9 +292,16 @@ def main():
         log_event(f"{label}: {len(subset)} records summarized.")
 
     # --------------------------------------------------------
-    # Append ISO timestamp for when the data was downloaded
-    # (Use the timestamp from the export file itself)
+    # Append authoritative timestamps + download time
     # --------------------------------------------------------
+    source_ts = fetch_source_update_timestamps()
+
+    summary_data["source_update_times"] = {
+        "data_processed_at": source_ts.get("data_processed_at"),
+        "metadata_processed_at": source_ts.get("metadata_processed_at"),
+        "modified_at": source_ts.get("modified_at")
+    }
+
     summary_data["downloaded_at"] = export_ts.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     summary_path = f"{DATA_DIR}/summary_stats_{export_ts.strftime('%Y-%m-%dT%H%MZ')}.json"

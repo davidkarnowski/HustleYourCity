@@ -34,7 +34,7 @@ Explore the latest city service response time dashboards by time period (updated
 - **Update Frequency:** Every 4 hours  
 - **Timezone:** America/Los_Angeles (PST/PDT)  
 
-**Typical Update Schedule:**  
+**City of Long Beach's Published Data Update Schedule:**  
 - 3:00 AM  
 - 7:00 AM  
 - 11:00 AM  

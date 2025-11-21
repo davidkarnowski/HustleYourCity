@@ -47,28 +47,22 @@ jobs:
           find data/ -type f -name 'service_requests_full_*.json.gz' -mtime +7 -delete || true
           ls -tp data/service_requests_full_*.json.gz | grep -v '/$' | tail -n +8 | xargs -I {} rm -- {} || true
 
-      # 3) Parse to summary JSON + set current pointer file
+      # 3) Parse to summary JSON (creates summary_results_current.json + archive copies)
       - name: Parse summary
         run: python type_status_response_summary.py
 
-      - name: Copy latest summary as current
-        run: |
-          latest_file=$(ls -t data/summary_stats_*.json | head -n 1)
-          cp "$latest_file" data/summary_results_current.json
-          echo "Copied $latest_file to summary_results_current.json"
-
-      # 4) Run LLM inference locally (no Make.com)
+      # 4) Run LLM inference
       - name: Run LLM inference (generate 4h/24h/7d/30d/90d text files)
         env:
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_AI_API_KEY }}
         run: |
           python LLM_inference.py
 
-      # 5) Generate dashboards & charts based on local JSON + text files
+      # 5) Generate dashboards & charts
       - name: Generate dashboards and charts
         run: python generate_dashboard.py
 
-      # 6) Generate about.html page as converted from README.md
+      # 6) Generate about.html page
       - name: Generate About Page
         run: |
           set -e
@@ -76,7 +70,7 @@ jobs:
           python generate_about_page.py
           echo "✅ About page generated"
 
-      # 7) Single push at the end (data + dashboards + charts)
+      # 7) Single commit + push
       - name: Commit and push all updates
         run: |
           echo "Preparing commit for data + dashboards + charts..."
@@ -88,6 +82,5 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "Automated: data export, LLM summaries, dashboards & charts [skip ci]"
-            # conflict-safe push (rebase if needed due to overlapping workflows)
             git push origin main || (git pull --rebase && git push origin main)
           fi

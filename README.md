@@ -217,7 +217,7 @@ After the summary text file is downloaded, the correlated PNG file of the genera
 #### Facebook Pages Status Publishing
 The routed `LLM_Response` variable is also sent to a Make.com connector for **Facebook Pages**, publishing the latest inferred status update to the **Hustle Long Beach** community page.
 
-#### LinkedIn Organization Stauts Publishing
+#### LinkedIn Organization Status Publishing
 The final route for the `LLM_Response` variable is a Make.com connector for **LinkedIn**, where the same inferred chat completion is published on the **Hustle Long Beach** organization page.
 
 ---

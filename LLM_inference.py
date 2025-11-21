@@ -114,11 +114,49 @@ def run_cerebras_inference(
 
             if res.status_code == 200:
                 text = res.json()["choices"][0]["message"]["content"].strip()
+
+                # -----------------------------
+                # Write the CURRENT summary file
+                # -----------------------------
                 Path(output_file).parent.mkdir(parents=True, exist_ok=True)
                 with open(output_file, "w") as f:
                     f.write(text)
                 print(f"✅ Successful response received and saved to {output_file}")
+
+                # ==============================================================
+                # NEW — ARCHIVE SYSTEM (timestamped history of all summaries)
+                # ==============================================================
+
+                from datetime import datetime
+                now = datetime.now()
+
+                year = now.strftime("%Y")
+                month = now.strftime("%m")
+                timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+
+                # Create: data/archive/YYYY/MM/
+                archive_dir = Path(f"data/archive/{year}/{month}")
+                archive_dir.mkdir(parents=True, exist_ok=True)
+
+                # Derive a readable timeframe label from filename
+                tf_label = (
+                    Path(output_file)
+                    .stem
+                    .replace("current_", "")
+                    .replace("_text_status", "")
+                )
+
+                archive_file = archive_dir / f"summary_{tf_label}_{timestamp}.txt"
+
+                # Write archive copy
+                with open(archive_file, "w") as af:
+                    af.write(text)
+
+                print(f"📦 Archived summary written → {archive_file}")
+                # ==============================================================
+
                 return text
+
             else:
                 print(f"⚠️ Cerebras returned error {res.status_code}: {res.text}")
 
@@ -134,6 +172,7 @@ def run_cerebras_inference(
     print("❌ Cerebras service unavailable after multiple attempts. Writing fallback text file.")
     _write_fallback(output_file)
     return FALLBACK_MESSAGE
+
 
 
 # ==========================================================

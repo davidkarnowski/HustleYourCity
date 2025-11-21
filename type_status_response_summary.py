@@ -7,7 +7,11 @@ and uncompressed (.json) formats — and computes:
 - Average response times
 - Windowed summaries (All-time, 90d, 60d, 30d, 7d, 1d, 4h)
 
-Writes summary JSON named after the same timestamp as the export file.
+Writes CURRENT summary JSON to:
+    data/summary_results_current.json
+
+Also writes ARCHIVAL JSON to:
+    data/archive/YYYY/MM/summary_json_<timestamp>.json
 
 Logs all runs to:
     data/logs/parse_log_YYYY-MM-DD.txt
@@ -21,7 +25,7 @@ import tempfile
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict, Counter
-import requests   # Needed for metadata fetch
+import requests
 
 DATA_DIR = "data"
 LOG_DIR = "data/logs"
@@ -102,21 +106,13 @@ def load_export_readonly(export_path):
 
 
 # ------------------------------
-# NEW: Correct, auto-detecting metadata fetch
+# Metadata fetch
 # ------------------------------
 
 def fetch_source_update_timestamps(verbose=True):
     """
-    Fetch dataset metadata from Opendatasoft, supporting:
-      - Direct JSON (Python requests)
-      - Make.com wrapped list format
-
-    Extract:
-      - data_processed
-      - metadata_processed
-      - modified
-
-    Return all normalized to UTC Z format.
+    Fetch dataset metadata from Opendatasoft (supports Make.com wrapper).
+    Extracts data_processed, metadata_processed, modified timestamps.
     """
 
     url = "https://longbeach.opendatasoft.com/api/explore/v2.1/catalog/datasets/service-requests"
@@ -131,74 +127,30 @@ def fetch_source_update_timestamps(verbose=True):
         print("\n==========================================")
         print("🔎 Fetching dataset metadata from Opendatasoft")
         print("==========================================")
-        print(f"➡ Requesting URL:\n    {url}\n")
 
     try:
         resp = requests.get(url, timeout=10)
-
-        if verbose:
-            print(f"🔄 HTTP Response Status: {resp.status_code}")
-            print(f"🔄 Headers returned: {list(resp.headers.keys())}")
-            print("🔄 Parsing JSON payload...")
-
         resp.raise_for_status()
         payload = resp.json()
 
-        if verbose:
-            print("\n--- BEGIN RAW METADATA PAYLOAD (TRUNCATED) ---")
-            try:
-                print(json.dumps(payload, indent=2)[:2000])
-            except Exception:
-                print("(Payload not printable)")
-            print("--- END RAW METADATA PAYLOAD ---\n")
-
-        # ------------------------------------------------------
-        # FORMAT DETECTION
-        # ------------------------------------------------------
-        # Case A — Make.com wrapper
+        # Format detection
         if isinstance(payload, list) and len(payload) > 0 and "data" in payload[0]:
             metadata_root = payload[0].get("data", {})
-            if verbose:
-                print("📦 Detected Make.com wrapper format.")
-        # Case B — direct JSON containing fields, metas, etc.
         elif isinstance(payload, dict) and "metas" in payload:
             metadata_root = payload
-            if verbose:
-                print("📦 Detected direct Opendatasoft API format (Python).")
-        # Case C — maybe nested under payload["data"]
         elif isinstance(payload, dict) and "data" in payload and "metas" in payload["data"]:
             metadata_root = payload["data"]
-            if verbose:
-                print("📦 Detected alternate API format: payload['data'] contains metadata.")
         else:
             metadata_root = {}
-            if verbose:
-                print("❌ Could not detect metadata format. No 'metas' found.")
-
-        # Print keys found
-        if verbose:
-            print(f"🔍 metadata_root keys: {list(metadata_root.keys())}")
 
         default_meta = {}
         if "metas" in metadata_root and "default" in metadata_root["metas"]:
             default_meta = metadata_root["metas"]["default"]
 
-        # Print inner keys
-        if verbose:
-            print(f"🔍 default_meta keys: {list(default_meta.keys())}\n")
-
-        # Extract raw timestamp strings
         dp = default_meta.get("data_processed")
         mp = default_meta.get("metadata_processed")
         md = default_meta.get("modified")
 
-        if verbose:
-            print("📌 Raw metadata timestamps found:")
-            print(f"   data_processed:      {dp}")
-            print(f"   metadata_processed:  {mp}")
-            print(f"   modified:            {md}\n")
-
-        # Normalize timestamps if present
         for key, raw in [
             ("data_processed_at", dp),
             ("metadata_processed_at", mp),
@@ -208,21 +160,9 @@ def fetch_source_update_timestamps(verbose=True):
                 dt = parse_datetime_iso(raw)
                 if dt:
                     output[key] = dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-                    if verbose:
-                        print(f"✅ Parsed {key}: {output[key]}")
-                else:
-                    if verbose:
-                        print(f"❌ Failed to parse {key} with raw value: {raw}")
-
-        if verbose:
-            print("\n🎉 Completed metadata extraction:")
-            print(json.dumps(output, indent=2))
-            print("==========================================\n")
 
     except Exception as e:
         log_event(f"WARNING: Could not fetch source timestamps: {e}")
-        if verbose:
-            print(f"❌ ERROR during metadata request: {e}")
 
     return output
 
@@ -232,7 +172,7 @@ def fetch_source_update_timestamps(verbose=True):
 # ------------------------------
 
 def summarize_by_type(records):
-    """Aggregate counts and average response times per service type."""
+    """Aggregate counts & average response times per type."""
     agg = defaultdict(lambda: {
         "total": 0,
         "status_counts": Counter(),
@@ -260,10 +200,10 @@ def summarize_by_type(records):
 
 
 def print_type_table(label, summary_by_type):
-    """Print human-readable per-type summary table."""
+    """Print human-readable summary."""
     print(f"\n=== {label} ===")
     if not summary_by_type:
-        print("No records found in this window.")
+        print("No records found.")
         return
 
     header = f"{'Service Type':30} {'Total':>8} {'Closed':>8} {'In Progress':>12} {'New':>8} {'Avg Response (hrs)':>20}"
@@ -287,7 +227,7 @@ def print_type_table(label, summary_by_type):
 # ------------------------------
 
 def write_json_atomically(obj, dest_path):
-    """Write JSON safely with temp file swap."""
+    """Write JSON safely via temp-file atomic swap."""
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(prefix="tmp_summary_", suffix=".json", dir=os.path.dirname(dest_path))
     try:
@@ -357,10 +297,7 @@ def main():
 
         log_event(f"{label}: {len(subset)} records summarized.")
 
-    # ---------------------------------------------
-    # Fetch authoritative metadata timestamps
-    # ---------------------------------------------
-    print("\n📡 Collecting authoritative source timestamps from Opendatasoft...")
+    # Metadata timestamps
     source_ts = fetch_source_update_timestamps(verbose=True)
 
     summary_data["source_update_times"] = {
@@ -371,17 +308,46 @@ def main():
 
     summary_data["downloaded_at"] = export_ts.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    summary_path = f"{DATA_DIR}/summary_stats_{export_ts.strftime('%Y-%m-%dT%H%MZ')}.json"
+    #
+    # ***************  WRITE CURRENT JSON SUMMARY  ***************
+    #
+    summary_path = f"{DATA_DIR}/summary_results_current.json"
 
     try:
         write_json_atomically(summary_data, summary_path)
-        print(f"Wrote JSON summary atomically to: {summary_path}")
+        print(f"Wrote CURRENT JSON summary atomically to: {summary_path}")
         duration = (datetime.now(timezone.utc) - start_time).total_seconds()
-        log_event(f"SUCCESS: Summary written to {summary_path}. Duration: {duration:.1f}s")
+        log_event(f"SUCCESS: Current summary written to {summary_path}. Duration: {duration:.1f}s")
     except Exception as e:
         print(f"Error writing JSON summary: {e}")
         log_event(f"ERROR writing summary: {e}")
+        return
 
+    #
+    # ***************  WRITE ARCHIVE COPY (YEAR/MONTH)  ***************
+    #
+
+    now_local = datetime.now()
+    year = now_local.strftime("%Y")
+    month = now_local.strftime("%m")
+    timestamp_local = now_local.strftime("%Y-%m-%d_%H-%M-%S")
+
+    archive_dir = Path(f"data/archive/{year}/{month}")
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    archive_json_path = archive_dir / f"summary_json_{timestamp_local}.json"
+
+    try:
+        with open(archive_json_path, "w", encoding="utf-8") as af:
+            json.dump(summary_data, af, indent=2, ensure_ascii=False)
+        print(f"📦 Archived summary written → {archive_json_path}")
+        log_event(f"Archived summary JSON written to {archive_json_path}")
+    except Exception as e:
+        print(f"⚠️ Failed to write JSON archive copy: {e}")
+        log_event(f"WARNING: Could not archive JSON summary: {e}")
+
+
+# --------------------------------------------------------------------
 
 if __name__ == "__main__":
     main()

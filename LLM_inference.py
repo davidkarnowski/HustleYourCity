@@ -1,30 +1,35 @@
 # ==========================================================
-# Hustle Long Beach — Cerebras LLM Inference Module (Resilient v2)
-# Adds exponential backoff and fallback file creation if service unavailable
+# Hustle Long Beach — Gemini 2.5 Pro LLM Inference Module
+# (Dynamic model selection + verbose output + retry logic)
+# ==========================================================
+# Generates natural-language summaries for civic-data dashboards.
+# Uses Google's Gemini 2.5 Pro (or alternate models) via the
+# AI Studio API. Reads API key from environment variable:
+#
+#   GOOGLE_AI_STUDIO_API_KEY
+#
+# Author: Hustle Long Beach project
 # ==========================================================
 
 import os
 import json
-import time
 import requests
+import time
 from pathlib import Path
+from datetime import datetime
 
 # ==========================================================
-# API configuration
+# Configuration
 # ==========================================================
-CEREBRAS_API_URL = "https://api.cerebras.ai/v1/chat/completions"
-DEFAULT_MODEL = "gpt-oss-120b"
-MAX_RETRIES = 10            # total attempts including first
-INITIAL_DELAY = 30         # seconds before first retry
-FALLBACK_MESSAGE = (
-    "Automated data summaries are temporarily unavailable.\n"
-    "The Hustle Long Beach dashboard will update once the LLM service is back online.\n"
-    "All table data and metrics have still been refreshed successfully.\n"
-    "Please check back soon for a new update."
-)
+
+# Base URL for all Gemini model variants
+GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+
+# Default model — can be changed dynamically at runtime
+DEFAULT_MODEL = "gemini-pro-latest"
 
 # ==========================================================
-# Base system prompt
+# Base system prompt — defines tone, language, and constraints
 # ==========================================================
 HUSTLE_BASE_PROMPT = """
 You are a third-party government accountability JSON interpreter for the Hustle Long Beach! community that evaluates city service response times. You are not officially part of the City of Long Beach government and you do not represent any agency management so do not refer to the work as ours or done by "we". You are ready to make sense of city service data from the Long Beach service call data via JSON. Evaluate the data and write a short social media update about the latest data update. We don't need all the data to be revealed and the post created should be short enough for a social media post. Make the data interpretable for the citizens of Long Beach. Hour counts over 72-hours should be expressed in days, weeks or months. Hour counts below 90 minutes should be measured in minutes. Unusually low responses may be due to administrative closures and not actual work completions. Remember that you are just trying to make sure the public knows about the latest response times, call totals and changes. Use facts and statistics to back up your post's language, always being factual about your response. Encourage followers to use the Go Long Beach service application to report issues to the city. Use straight-forward and simple language, nothing elaborate or flowery. 
@@ -41,7 +46,7 @@ Your last lines should always include the date-time stamps of the JSON "download
 """.strip()
 
 # ==========================================================
-# Time-frame addenda
+# Time-frame prompts — adds period-specific focus
 # ==========================================================
 TIMEFRAME_PROMPTS = {
     "4hours": """
@@ -62,15 +67,57 @@ This summary will focus on significant data changes only in the past 90 days. Us
 }
 
 # ==========================================================
-# LLM inference function with exponential retry + fallback
+# Helper: Resilient API call with exponential backoff
 # ==========================================================
-def run_cerebras_inference(
+def post_with_retries(url, headers, payload, max_retries=5, backoff_factor=2):
+    """
+    Sends POST request with exponential backoff on transient errors.
+    Retries on: 429 (rate limit), 500, 503, and network timeouts.
+    """
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"📡 Attempt {attempt}/{max_retries} — contacting Gemini API...")
+            res = requests.post(url, headers=headers, json=payload, timeout=90)
+
+            # Retry if the model is overloaded or rate limited
+            if res.status_code in (429, 500, 503):
+                wait = backoff_factor ** attempt
+                print(f"⚠️ Received {res.status_code}: {res.reason}. Waiting {wait}s before retry...")
+                time.sleep(wait)
+                continue
+
+            # Other non-successful codes
+            if res.status_code != 200:
+                raise RuntimeError(f"Gemini API error {res.status_code}: {res.text}")
+
+            print("✅ Successful response received from Gemini API.")
+            return res
+
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            wait = backoff_factor ** attempt
+            print(f"⚠️ Network issue: {e}. Retrying in {wait}s...")
+            time.sleep(wait)
+
+    # If all retries failed, abort with a clear message
+    raise RuntimeError("❌ Gemini API failed after multiple retry attempts.")
+
+
+# ==========================================================
+# Core LLM inference function
+# ==========================================================
+def run_gemini_inference(
     system_prompt: str,
     timeframe_prompt: str,
     user_prompt: str,
-    output_file: str,
+    output_file: str = None,
     model: str = DEFAULT_MODEL
 ) -> str:
+    """
+    Combines base + timeframe prompts, sends them with JSON data
+    to Gemini, and writes the resulting summary to a text file.
+    """
+
+    # Combine all textual instructions for the model
     final_prompt = (
         system_prompt.strip()
         + "\n\n"
@@ -78,125 +125,87 @@ def run_cerebras_inference(
         + "\n\nYou will now receive the JSON data."
     )
 
-    api_key = os.getenv("CEREBRAS_API_KEY")
+    # Display start info for this inference cycle
+    print("------------------------------------------------------")
+    print(f"[{datetime.now()}] Starting inference with model: {model}")
+    print("------------------------------------------------------")
+
+    # Retrieve API key from environment
+    api_key = os.getenv("GOOGLE_AI_STUDIO_API_KEY")
     if not api_key:
-        print("❌ Missing environment variable: CEREBRAS_API_KEY")
-        _write_fallback(output_file)
-        return FALLBACK_MESSAGE
+        raise RuntimeError("Missing environment variable: GOOGLE_AI_STUDIO_API_KEY")
 
-    payload = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": final_prompt},
-            {"role": "user", "content": user_prompt.strip()},
-        ],
-        "temperature": 0.3,
-        "max_tokens": 1600,
-        "stream": False,
-    }
-
+    # Build request headers for authentication
     headers = {
-        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
+        "x-goog-api-key": api_key
     }
 
-    attempt = 0
-    delay = INITIAL_DELAY
+    # Construct the full model endpoint dynamically
+    url = f"{GEMINI_API_BASE}/{model}:generateContent"
+    print(f"📍 Using endpoint: {url}")
 
-    while attempt < MAX_RETRIES:
-        attempt += 1
-        print("\n------------------------------------------------------")
-        print(f"[Attempt {attempt}/{MAX_RETRIES}] Contacting Cerebras API...")
+    # Assemble the request body according to Gemini schema
+    payload = {
+        "contents": [
+            {"parts": [
+                {"text": final_prompt},
+                {"text": user_prompt.strip()}
+            ]}
+        ],
+        "generationConfig": {
+            "temperature": 0.3,        # Low temperature for factual output
+            "maxOutputTokens": 4096    # Reasonable max token limit
+        }
+    }
 
-        try:
-            res = requests.post(CEREBRAS_API_URL, headers=headers, json=payload, timeout=60)
-            print(f"Response code: {res.status_code}")
+    # Perform the API call using retry helper
+    res = post_with_retries(url, headers, payload)
+    data = res.json()
 
-            if res.status_code == 200:
-                text = res.json()["choices"][0]["message"]["content"].strip()
+    # Attempt to extract text from the returned JSON
+    try:
+        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except (KeyError, IndexError):
+        print("⚠️ Unexpected response format:")
+        print(json.dumps(data, indent=2))
+        raise RuntimeError("Gemini API returned unrecognized structure.")
 
-                # -----------------------------
-                # Write the CURRENT summary file
-                # -----------------------------
-                Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-                with open(output_file, "w") as f:
-                    f.write(text)
-                print(f"✅ Successful response received and saved to {output_file}")
+    # Display a preview of generated content
+    preview = text[:250].replace("\n", " ")
+    print(f"📝 Preview: {preview}...")
 
-                # ==============================================================
-                # NEW — ARCHIVE SYSTEM (timestamped history of all summaries)
-                # ==============================================================
+    # Write output to file if path provided
+    if output_file:
+        Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(text)
+        print(f"💾 Saved output to {output_file}")
 
-                from datetime import datetime
-                now = datetime.now()
-
-                year = now.strftime("%Y")
-                month = now.strftime("%m")
-                timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
-
-                # Create: data/archive/YYYY/MM/
-                archive_dir = Path(f"data/archive/{year}/{month}")
-                archive_dir.mkdir(parents=True, exist_ok=True)
-
-                # Derive a readable timeframe label from filename
-                tf_label = (
-                    Path(output_file)
-                    .stem
-                    .replace("current_", "")
-                    .replace("_text_status", "")
-                )
-
-                archive_file = archive_dir / f"summary_{tf_label}_{timestamp}.txt"
-
-                # Write archive copy
-                with open(archive_file, "w") as af:
-                    af.write(text)
-
-                print(f"📦 Archived summary written → {archive_file}")
-                # ==============================================================
-
-                return text
-
-            else:
-                print(f"⚠️ Cerebras returned error {res.status_code}: {res.text}")
-
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Request failed: {e}")
-
-        if attempt < MAX_RETRIES:
-            print(f"⏳ Waiting {delay} seconds before retry...")
-            time.sleep(delay)
-            delay *= 2  # exponential backoff
-
-    # All retries exhausted
-    print("❌ Cerebras service unavailable after multiple attempts. Writing fallback text file.")
-    _write_fallback(output_file)
-    return FALLBACK_MESSAGE
-
+    print(f"[{datetime.now()}] ✅ Completed inference for {output_file}")
+    print("------------------------------------------------------\n")
+    return text
 
 
 # ==========================================================
-# Helper: write fallback file
-# ==========================================================
-def _write_fallback(output_file: str):
-    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-    with open(output_file, "w") as f:
-        f.write(FALLBACK_MESSAGE)
-    print(f"⚙️  Fallback file written: {output_file}")
-
-
-# ==========================================================
-# Main — generate all 5 period summaries
+# Main execution — Generate all timeframe summaries
 # ==========================================================
 if __name__ == "__main__":
+    print("======================================================")
+    print("🚀 Hustle Long Beach — Gemini 2.5 Pro Inference Started")
+    print("======================================================")
+
+    # Load current dataset
     data_path = Path("data/summary_results_current.json")
     if not data_path.exists():
-        print("❌ Missing data/summary_results_current.json — cannot proceed.")
-        exit(0)
+        raise FileNotFoundError("❌ Missing data/summary_results_current.json")
 
-    with open(data_path, "r") as f:
+    with open(data_path, "r", encoding="utf-8") as f:
         json_payload = f.read()
 
+    print(f"✅ Loaded JSON ({len(json_payload)} chars)\n")
+
+    # Map each timeframe to its corresponding output file
     output_map = {
         "4hours":  "data/current_4_hour_text_status.txt",
         "24hours": "data/current_24_hour_text_status.txt",
@@ -205,18 +214,19 @@ if __name__ == "__main__":
         "90days":  "data/current_90_day_text_status.txt",
     }
 
+    # Iterate through each timeframe and generate summaries
     for timeframe, prompt in TIMEFRAME_PROMPTS.items():
         outfile = output_map[timeframe]
-        print("\n======================================================")
-        print(f"🚀 Generating {timeframe} summary → {outfile}")
-        print("======================================================")
-
-        text = run_cerebras_inference(
+        print(f"▶️ Generating summary for: {timeframe}")
+        text = run_gemini_inference(
             HUSTLE_BASE_PROMPT,
             prompt,
             json_payload,
-            output_file=outfile
+            output_file=outfile,
+            model=DEFAULT_MODEL  # Dynamically referenced
         )
-        print(f"✅ Output ready for {timeframe} → {outfile}")
+        print(f"✅ Summary complete for {timeframe}\n")
 
-    print("\n🏁 Completed all inference tasks — continuing dashboard build.")
+    print("======================================================")
+    print("🎉 All summaries generated successfully!")
+    print("======================================================")

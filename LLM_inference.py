@@ -182,6 +182,36 @@ def run_gemini_inference(
             f.write(text)
         print(f"💾 Saved output to {output_file}")
 
+        # ==============================================================
+        # ARCHIVE SYSTEM (timestamped history of all summaries)
+        # ==============================================================
+        now = datetime.now()
+
+        year = now.strftime("%Y")
+        month = now.strftime("%m")
+        timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+
+        # Create: data/archive/YYYY/MM/
+        archive_dir = Path(f"data/archive/{year}/{month}")
+        archive_dir.mkdir(parents=True, exist_ok=True)
+
+        # Derive a readable timeframe label from filename
+        tf_label = (
+            Path(output_file)
+            .stem
+            .replace("current_", "")
+            .replace("_text_status", "")
+        )
+
+        archive_file = archive_dir / f"summary_{tf_label}_{timestamp}.txt"
+
+        # Write archive copy
+        with open(archive_file, "w", encoding="utf-8") as af:
+            af.write(text)
+
+        print(f"📦 Archived summary written → {archive_file}")
+        # ==============================================================
+
     print(f"[{datetime.now()}] ✅ Completed inference for {output_file}")
     print("------------------------------------------------------\n")
     return text

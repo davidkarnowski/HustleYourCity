@@ -235,6 +235,10 @@ By providing simple, quantitative data on city responsiveness, we hope to:
 If you want to support the continued development and maintenance of this project, you can send an amount of your choosing to our PayPal account. You pick how much support to provide. No PayPal account required.
 [Support Hustle Long Beach! via PayPal - Click Here](https://www.paypal.com/ncp/payment/JYJDUKNCD4324)
 
+---
+
+HustleYourCity has been analyzed by DeepWiki and the documentation is avaiable for further reference:
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/davidkarnowski/HustleYourCity)
 
 ---
 

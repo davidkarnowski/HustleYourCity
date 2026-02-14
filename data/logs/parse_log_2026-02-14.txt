@@ -9,3 +9,13 @@
 [2026-02-14T04:52:30Z] WARNING: Could not fetch source timestamps: HTTPSConnectionPool(host='longbeach.opendatasoft.com', port=443): Max retries exceeded with url: /api/explore/v2.1/catalog/datasets/service-requests (Caused by ConnectTimeoutError(<HTTPSConnection(host='longbeach.opendatasoft.com', port=443) at 0x7faac5113810>, 'Connection to longbeach.opendatasoft.com timed out. (connect timeout=10)'))
 [2026-02-14T04:52:30Z] SUCCESS: Current summary written to data/summary_results_current.json. Duration: 23.8s
 [2026-02-14T04:52:30Z] Archived summary JSON written to data/archive/2026/02/summary_json_2026-02-14_04-52-30.json
+[2026-02-14T07:45:06Z] Starting summary generation.
+[2026-02-14T07:45:09Z] All-Time: 306837 records summarized.
+[2026-02-14T07:45:09Z] Last 90 Days: 16451 records summarized.
+[2026-02-14T07:45:09Z] Last 60 Days: 11420 records summarized.
+[2026-02-14T07:45:09Z] Last 30 Days: 6044 records summarized.
+[2026-02-14T07:45:09Z] Last 7 Days: 1274 records summarized.
+[2026-02-14T07:45:09Z] Last 1 Days: 187 records summarized.
+[2026-02-14T07:45:09Z] Last 4 Hours: 4 records summarized.
+[2026-02-14T07:45:10Z] SUCCESS: Current summary written to data/summary_results_current.json. Duration: 4.0s
+[2026-02-14T07:45:10Z] Archived summary JSON written to data/archive/2026/02/summary_json_2026-02-14_07-45-10.json

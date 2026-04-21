@@ -26,7 +26,7 @@ from datetime import datetime
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
 # Default model — can be changed dynamically at runtime
-DEFAULT_MODEL = "gemini-3-pro-preview"
+DEFAULT_MODEL = "gemini-3.1-pro-preview"
 
 # ==========================================================
 # Base system prompt — defines tone, language, and constraints

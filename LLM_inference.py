@@ -1,9 +1,9 @@
 # ==========================================================
-# Hustle Long Beach — Gemini 2.5 Pro LLM Inference Module
+# Hustle Long Beach — Gemini 3.1 Flash-Lite Preview LLM Inference Module
 # (Dynamic model selection + verbose output + retry logic)
 # ==========================================================
 # Generates natural-language summaries for civic-data dashboards.
-# Uses Google's Gemini 2.5 Pro (or alternate models) via the
+# Uses Google's Gemini 3.1 Flash-Lite Preview (or alternate models) via the
 # AI Studio API. Reads API key from environment variable:
 #
 #   GOOGLE_AI_STUDIO_API_KEY
@@ -26,7 +26,7 @@ from datetime import datetime
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
 # Default model — can be changed dynamically at runtime
-DEFAULT_MODEL = "gemini-3.1-pro-preview"
+DEFAULT_MODEL = "gemini-3.1-flash-lite-preview"
 
 # ==========================================================
 # Base system prompt — defines tone, language, and constraints
@@ -222,7 +222,7 @@ def run_gemini_inference(
 # ==========================================================
 if __name__ == "__main__":
     print("======================================================")
-    print("🚀 Hustle Long Beach — Gemini 2.5 Pro Inference Started")
+    print("🚀 Hustle Long Beach — Gemini 3.1 Flash-Lite Preview Inference Started")
     print("======================================================")
 
     # Load current dataset

@@ -2,13 +2,31 @@ name: Automated Data Export, LLM Inference, and Dashboard Update
 
 on:
   schedule:
-    # Los Angeles times converted to UTC (during PST, UTC−8)
-    - cron: "10 15 * * *"   # 7:10 AM LA (15:10 UTC)
-    - cron: "10 19 * * *"   # 11:10 AM LA (19:10 UTC)
-    - cron: "10 23 * * *"   # 3:10 PM LA (23:10 UTC)
-    - cron: "10 3 * * *"    # 7:10 PM LA (03:10 UTC next day)
-    - cron: "10 7 * * *"    # 11:10 PM LA (07:10 UTC next day)
-    - cron: "10 11 * * *"   # 3:10 AM LA (11:10 UTC)
+    # ----------------------------------------------------------------------
+    # Schedule is fixed in UTC. Local-time equivalents drift by 1 hour
+    # across U.S. DST transitions (twice a year). Drift is tolerated
+    # because the City publishes data every 4 hours and our pipeline
+    # cadence (~4 hours) absorbs a 1-hour shift without operational
+    # impact. If precise wall-clock alignment becomes important, refactor
+    # to use workflow_dispatch + an external scheduler.
+    #
+    # Equivalent local times (approximate; 1-hour shift during PDT):
+    #   15:10 UTC = 07:10 PST / 08:10 PDT
+    #   19:10 UTC = 11:10 PST / 12:10 PDT
+    #   23:10 UTC = 15:10 PST / 16:10 PDT
+    #   03:10 UTC = 19:10 PST / 20:10 PDT (previous LA day)
+    #   07:10 UTC = 23:10 PST / 00:10 PDT (previous LA day)
+    #   11:10 UTC = 03:10 PST / 04:10 PDT
+    #
+    # City of Long Beach publishes at 03/07/11 AM/PM PT.
+    # Our pipeline fires ~10 min after each PST-equivalent publish window.
+    # ----------------------------------------------------------------------
+    - cron: "10 15 * * *"
+    - cron: "10 19 * * *"
+    - cron: "10 23 * * *"
+    - cron: "10 3 * * *"
+    - cron: "10 7 * * *"
+    - cron: "10 11 * * *"
   workflow_dispatch:
 
 jobs:

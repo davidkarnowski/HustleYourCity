@@ -88,13 +88,26 @@ jobs:
           python generate_about_page.py
           echo "✅ About page generated"
 
-      # 7) Single commit + push
+      # 7) Defensive cleanup: never commit raw exports (Phase 1.2)
+      - name: Remove raw exports from working tree before commit
+        run: |
+          rm -f data/service_requests_full_*.json data/service_requests_full_*.json.gz
+          echo "Raw exports removed from working tree (will not be committed)."
+
+      # 8) Single commit + push (explicit staging — see Plan 01 Task 1.2 for rationale)
       - name: Commit and push all updates
         run: |
           echo "Preparing commit for data + dashboards + charts..."
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ data/dashboard/ data/charts/
+          # Stage only the artifacts intended for the public site.
+          # Raw service_requests_full_*.json.gz are intentionally NOT staged
+          # (Phase 1.2 — halts the largest contributor to repo bloat).
+          git add data/dashboard/ data/charts/
+          git add data/summary_results_current.json
+          git add data/current_*.txt
+          git add data/archive/
+          git add data/logs/
 
           if git diff --cached --quiet; then
             echo "No changes to commit."

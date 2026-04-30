@@ -19,6 +19,7 @@ Logs all runs to:
 
 import json
 import os
+import sys
 import gzip
 import shutil
 import tempfile
@@ -248,25 +249,26 @@ def write_json_atomically(obj, dest_path):
 # Main Routine
 # ------------------------------
 
-def main():
+def main() -> int:
+    """Returns 0 on success, non-zero exit code on failure (Phase 1.4)."""
     start_time = datetime.now(timezone.utc)
     log_event("Starting summary generation.")
 
     try:
         latest_file, export_ts = find_latest_export_file(DATA_DIR)
     except Exception as e:
-        print(f"Error: {e}")
-        log_event(f"ERROR locating export: {e}")
-        return
+        print(f"FATAL locating export: {e}", file=sys.stderr)
+        log_event(f"FATAL locating export: {e}")
+        return 2
 
     print(f"Using latest export: {latest_file.name} (timestamp: {export_ts.isoformat()})")
 
     try:
         records = load_export_readonly(latest_file)
     except Exception as e:
-        print(f"Error loading export: {e}")
-        log_event(f"ERROR loading export: {e}")
-        return
+        print(f"FATAL loading export: {e}", file=sys.stderr)
+        log_event(f"FATAL loading export: {e}")
+        return 3
 
     now = datetime.now(timezone.utc)
 
@@ -319,9 +321,9 @@ def main():
         duration = (datetime.now(timezone.utc) - start_time).total_seconds()
         log_event(f"SUCCESS: Current summary written to {summary_path}. Duration: {duration:.1f}s")
     except Exception as e:
-        print(f"Error writing JSON summary: {e}")
-        log_event(f"ERROR writing summary: {e}")
-        return
+        print(f"FATAL writing JSON summary: {e}", file=sys.stderr)
+        log_event(f"FATAL writing summary: {e}")
+        return 4
 
     #
     # ***************  WRITE ARCHIVE COPY (YEAR/MONTH)  ***************
@@ -343,11 +345,14 @@ def main():
         print(f"📦 Archived summary written → {archive_json_path}")
         log_event(f"Archived summary JSON written to {archive_json_path}")
     except Exception as e:
-        print(f"⚠️ Failed to write JSON archive copy: {e}")
+        # Archive write is best-effort: warn but do not fail the run.
+        print(f"WARNING: Failed to write JSON archive copy: {e}", file=sys.stderr)
         log_event(f"WARNING: Could not archive JSON summary: {e}")
+
+    return 0
 
 
 # --------------------------------------------------------------------
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

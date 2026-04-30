@@ -15,6 +15,7 @@ This version is optimized for general cloud or local runtimes:
 import requests
 import json
 import os
+import sys
 import gzip
 import time
 from datetime import datetime, timezone
@@ -142,12 +143,27 @@ def download_full_export_json(max_retries: int = 3):
     return compressed_output_file, count
 
 
+# === Sanity floor (Phase 1.4) ==================================================
+# Dataset has been ~321K records for many months. A dramatically lower count
+# indicates upstream API regression and should surface as a warning even if
+# the download itself succeeded.
+SUSPICIOUS_RECORD_FLOOR = 100_000
+
 # === Main Execution ============================================================
 if __name__ == "__main__":
     path, total_records = download_full_export_json()
+    if path is None:
+        # All retries failed; download_full_export_json() returned (None, 0)
+        print("FATAL: Export failed after all retries.", file=sys.stderr)
+        log_event("FATAL: Export failed after all retries.")
+        sys.exit(1)
     if total_records == 0:
-        print("No records found or dataset too large for JSON export.")
-        log_event("No records found or dataset too large.")
-    else:
-        print(f"Successfully downloaded {total_records} records to {path}.")
-        log_event(f"SUCCESS: {total_records} records exported to {path}.")
+        print("FATAL: Export succeeded but contained zero records.", file=sys.stderr)
+        log_event("FATAL: Export contained zero records.")
+        sys.exit(1)
+    if total_records < SUSPICIOUS_RECORD_FLOOR:
+        print(f"WARNING: Suspiciously low record count: {total_records}", file=sys.stderr)
+        log_event(f"WARNING: Suspiciously low record count: {total_records}")
+        # Still exit 0 — let the parser handle the data; surface as warning only.
+    print(f"Successfully downloaded {total_records} records to {path}.")
+    log_event(f"SUCCESS: {total_records} records exported to {path}.")

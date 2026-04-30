@@ -69,10 +69,14 @@ jobs:
       - name: Parse summary
         run: python type_status_response_summary.py
 
-      # 4) Run LLM inference
+      # 4) Run LLM inference (cascade: Gemini → OpenAI → Archive, per Decision Log D-05)
       - name: Run LLM inference (generate 4h/24h/7d/30d/90d text files)
         env:
           GOOGLE_AI_STUDIO_API_KEY: ${{ secrets.GOOGLE_AI_STUDIO_API_KEY }}
+          # Phase 2.4: OpenAI is the default secondary cascade target.
+          # Mitigates Gemini preview-tier 503-overload events observed
+          # in production on 2026-04-30.
+          OPENAI_API_KEY:           ${{ secrets.OPENAI_API_KEY }}
         run: |
           python LLM_inference.py
 

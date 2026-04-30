@@ -1,0 +1,43 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# === Virtual envs ===
+.venv/
+venv/
+env/
+
+# === Secrets / local config ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+.secrets/
+
+# === IDE / OS ===
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# === Project-specific: raw exports stay local only (Phase 1.2) ===
+data/service_requests_full_*.json.gz
+data/service_requests_full_*.json
+
+# === Project-specific: any private notes accidentally created in-repo ===
+NOTES.md
+TODO.md
+PRIVATE/
+DRAFT/
+*.private.md

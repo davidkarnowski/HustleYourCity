@@ -114,7 +114,7 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str, ge
             for k, v in statuses.items():
                 norm = normalize_status(k)
                 if norm:
-                    normalized[norm] = normalized.get(normalized.get(k, 0), 0) + int(v)
+                    normalized[norm] = normalized.get(norm, 0) + int(v)
             statuses = normalized
         table_data[case_type] = statuses
 

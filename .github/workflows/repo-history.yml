@@ -1,33 +1,72 @@
 name: Repo History Maintenance
 
-# Read-only for now: clones the full history on the runner and reports what
-# fills it (git filter-repo --analyze). Nothing is pushed.
+# Removes raw City exports (data/service_requests_full_*.json[.gz]) from git
+# history. Charts, summaries and everything else keep their full history.
+#
+#   analyze  — report what fills the history. Read-only.
+#   dry-run  — do the whole rewrite on the runner and verify it; push nothing,
+#              upload nothing.
+#   rewrite  — first save a full backup bundle and one raw export per month
+#              to draft (collaborators-only) releases, then rewrite and
+#              force-push with a lease. Needs confirm = "REWRITE" and the
+#              HISTORY_REWRITE_TOKEN secret (fine-grained PAT for this repo:
+#              Contents + Workflows read/write) — the default token cannot
+#              push commits that touch .github/workflows/.
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [analyze, dry-run, rewrite]
+        default: analyze
+      confirm:
+        description: 'Type REWRITE to allow the force-push (rewrite mode only)'
+        required: false
+        default: ""
   push:
     branches: ["maintenance/**"]
     paths:
       - ".github/workflows/repo-history.yml"
       - ".github/scripts/summarize_history.py"
 
+# A rewrite shares the data pipeline's group, so no scheduled run can push
+# mid-rewrite. Analyze and dry-run never block the pipeline.
 concurrency:
-  group: repo-history
+  group: ${{ inputs.mode == 'rewrite' && 'data-pipeline' || 'repo-history' }}
   cancel-in-progress: false
 
 permissions:
   contents: read
 
+env:
+  MODE: ${{ inputs.mode || 'dry-run' }}
+  RAW_GLOB: data/service_requests_full_*
+
 jobs:
-  analyze:
+  history:
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 180
+    permissions:
+      contents: write   # draft releases for the backup and monthly snapshots
     steps:
+      - name: Refuse rewrite without confirmation
+        if: env.MODE == 'rewrite' && inputs.confirm != 'REWRITE'
+        run: |
+          echo "::error::rewrite mode needs confirm = REWRITE"
+          exit 1
+
       - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           persist-credentials: false
           path: tools
+
+      - name: Free runner disk (backup bundle needs ~12 GB)
+        if: env.MODE == 'rewrite'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
 
       - name: Install git-filter-repo
         run: pipx install git-filter-repo==2.47.0
@@ -37,15 +76,19 @@ jobs:
           start=$(date +%s)
           git clone --mirror --quiet "https://github.com/${GITHUB_REPOSITORY}.git" history.git
           echo "Clone took $(( $(date +%s) - start ))s"
-          git -C history.git count-objects -vH
+          git -C history.git for-each-ref --format='%(objectname) %(refname)' refs/heads refs/tags \
+            | tee refs-before.txt
+          git -C history.git rev-list --count --all > commits-before.txt
+          while read -r sha ref; do
+            echo "$ref $(git -C history.git rev-parse "$sha^{tree}")"
+          done < refs-before.txt > trees-before.txt
 
       - name: Analyze
         run: |
           cd history.git
           git filter-repo --analyze
           {
-            echo "# History analysis"
-            echo
+            echo "# History analysis ($MODE)"
             echo '```'
             git count-objects -vH
             echo "commits: $(git rev-list --count --all)"
@@ -54,7 +97,115 @@ jobs:
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v7
+        if: env.MODE == 'analyze'
         with:
           name: filter-repo-analysis
           path: history.git/filter-repo/analysis
           retention-days: 30
+
+      - name: Pick one raw export per month (the last of each month)
+        if: env.MODE != 'analyze'
+        run: |
+          git -C history.git log --all --diff-filter=A --format='C %H' --name-only -- "$RAW_GLOB" \
+            | awk '/^C /{c=$2; next} NF{print c, $0}' \
+            | sort -k2 \
+            | awk '{m=substr($2, length("data/service_requests_full_")+1, 7); last[m]=$0} END{for (m in last) print last[m]}' \
+            | sort -k2 > monthly.txt
+          {
+            echo "## Monthly raw snapshots to keep"
+            echo '```'
+            awk '{print $2}' monthly.txt
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          mkdir -p snapshots
+          while read -r commit path; do
+            out="snapshots/$(basename "$path")"
+            git -C history.git cat-file blob "$commit:$path" > "$out"
+            case "$out" in *.gz) gzip -t "$out" ;; esac
+          done < monthly.txt
+          ls -l snapshots
+
+      - name: Back up full history to a draft release
+        if: env.MODE == 'rewrite'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="history-backup-$(date -u +%Y%m%d)"
+          mkdir -p backup
+          git -C history.git bundle create "$PWD/backup/full.bundle" --all
+          git -C history.git bundle verify "$PWD/backup/full.bundle"
+          (cd backup && sha256sum full.bundle > full.bundle.sha256 \
+            && split -b 1900M -d full.bundle full.bundle.part- && rm full.bundle)
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft \
+            --title "Full git history backup before raw-export removal ($(date -u +%F))" \
+            --notes "Restore: cat full.bundle.part-* > full.bundle && sha256sum -c full.bundle.sha256 && git clone --mirror full.bundle"
+          for f in backup/*; do
+            gh release upload "$tag" "$f" --repo "$GITHUB_REPOSITORY"
+            rm -f "$f"
+          done
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[] | "\(.name) \(.size)"' \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Save monthly raw snapshots to a draft release
+        if: env.MODE == 'rewrite'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="raw-snapshots-monthly-history"
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft \
+                 --title "Raw City exports — one per month, before history cleanup" \
+                 --notes "The last raw export of each month that was in git history. Each file is a full copy of the City dataset at that time."
+          gh release upload "$tag" snapshots/* --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Remove raw exports from history
+        if: env.MODE != 'analyze'
+        run: |
+          cd history.git
+          git filter-repo --force --prune-empty never \
+            --invert-paths --path-glob 'data/service_requests_full_*.json.gz' \
+                           --path-glob 'data/service_requests_full_*.json'
+          git reflog expire --expire=now --all
+          git gc --prune=now --quiet
+          {
+            echo "## After rewrite"
+            echo '```'
+            git count-objects -vH
+            echo "commits: $(git rev-list --count --all)"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify
+        if: env.MODE != 'analyze'
+        run: |
+          cd history.git
+          # Same commit count, no raw exports anywhere, identical tip trees.
+          before=$(cat ../commits-before.txt)
+          after=$(git rev-list --count --all)
+          [ "$after" = "$before" ] || { echo "::error::commit count changed: $before -> $after"; exit 1; }
+          left=$(git log --all --format= --name-only -- "$RAW_GLOB" | grep -c . || true)
+          [ "$left" = 0 ] || { echo "::error::$left raw-export paths remain"; exit 1; }
+          while read -r ref tree; do
+            now=$(git rev-parse "$ref^{tree}")
+            if [ "$now" != "$tree" ]; then
+              echo "::error::$ref tip tree changed ($tree -> $now)"; exit 1
+            fi
+            echo "ok  $ref tip tree unchanged"
+          done < ../trees-before.txt
+          git fsck --connectivity-only --no-progress
+          echo "Verified: $before commits, tips unchanged." | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Force-push rewritten history (with lease)
+        if: env.MODE == 'rewrite'
+        env:
+          TOKEN: ${{ secrets.HISTORY_REWRITE_TOKEN }}
+        run: |
+          [ -n "$TOKEN" ] || { echo "::error::HISTORY_REWRITE_TOKEN secret is not set"; exit 1; }
+          cd history.git
+          url="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          args=()
+          while read -r old ref; do
+            args+=("--force-with-lease=$ref:$old" "$ref:$ref")
+          done < ../refs-before.txt
+          git push --atomic "$url" "${args[@]}"
+          echo "Pushed rewritten refs." | tee -a "$GITHUB_STEP_SUMMARY"

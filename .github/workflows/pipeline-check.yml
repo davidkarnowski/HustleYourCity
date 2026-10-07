@@ -104,3 +104,35 @@ jobs:
           python -m compileall -q .
           # generate_about_page.py runs on import; it is exercised by pipeline-dry-run.
           python -c "import full_exporter, type_status_response_summary, generate_dashboard, llm.runner"
+
+  snapshot-retention:
+    # Exercises snapshot_raw_export.sh against a throwaway draft release,
+    # then deletes it. Needs release write access, so only this job has it.
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SNAPSHOT_RELEASE: raw-snapshots-ci-test-${{ github.run_id }}
+      SNAPSHOT_KEEP_WEEKS: "2"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Upload, dedupe and prune
+        run: |
+          set -euo pipefail
+          f="$RUNNER_TEMP/service_requests_full_2026-01-05T0000Z.json.gz"
+          echo test | gzip > "$f"
+          for week in 2026-W01 2026-W02 2026-W01 2026-W03; do
+            SNAPSHOT_WEEK=$week SNAPSHOT_FILE="$f" .github/scripts/snapshot_raw_export.sh
+          done
+          got=$(gh release view "$SNAPSHOT_RELEASE" --json assets,isDraft -q '"\(.isDraft) " + ([.assets[].name] | sort | join(" "))')
+          want="true service_requests_2026-W02_2026-01-05T0000Z.json.gz service_requests_2026-W03_2026-01-05T0000Z.json.gz"
+          echo "got:  $got"; echo "want: $want"
+          [ "$got" = "$want" ]
+      - name: Clean up test release
+        if: always()
+        run: gh release delete "$SNAPSHOT_RELEASE" --yes || true

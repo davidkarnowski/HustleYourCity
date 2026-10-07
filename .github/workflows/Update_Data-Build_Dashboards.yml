@@ -73,6 +73,15 @@ jobs:
           find data/ -type f -name 'service_requests_full_*.json.gz' -mtime +7 -delete || true
           ls -tp data/service_requests_full_*.json.gz | grep -v '/$' | tail -n +8 | xargs -I {} rm -- {} || true
 
+      # 2b) Raw-export retention: one export per ISO week goes to a draft
+      # (collaborators-only) release, keeping the last 12 weeks. Never in git.
+      # A failure here must not stop the pipeline.
+      - name: Save weekly raw snapshot (draft release, 12-week retention)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/snapshot_raw_export.sh
+
       # 3) Parse to summary JSON (creates summary_results_current.json + archive copies)
       - name: Parse summary
         run: python type_status_response_summary.py

@@ -121,7 +121,7 @@
 <h2>Core Python Scripts</h2>
 <h3><code>full_exporter.py</code></h3>
 <p>Downloads the complete dataset from the Long Beach open data API using the JSON export endpoint.<br />
-Each export is saved as a timestamped file in the <code>data/</code> directory (e.g. <code>service_requests_full_20251016_070000.json</code>).</p>
+Each export is saved as a timestamped file in the <code>data/</code> directory (e.g. <code>service_requests_full_20251016_070000.json</code>) for the duration of the run. Raw exports are not committed; see <a href="#hosting-storage-and-data-retention">Data Retention</a>.</p>
 <p><strong>Functions:</strong>
 - Fetch full dataset via the <code>exports/json</code> API.
 - Log all download attempts and file information.
@@ -163,7 +163,7 @@ Each export is saved as a timestamped file in the <code>data/</code> directory (
 <p><strong>Workflow:</strong>
 - Triggered every 4 hours, approximately ten minutes after each dataset update by the City of Long Beach (Pacific Time)
 - Runs the exporter, parser, LLM inference routine and dashboard and chart generators
-- Saves each dataset and summary to the repository for historical tracking</p>
+- Commits each summary, chart and dashboard to the repository for historical tracking (raw exports are not committed)</p>
 <p><strong>Example GitHub Actions Schedule (UTC):</strong></p>
 <pre><code class="language-yaml">on:
   schedule:
@@ -238,9 +238,30 @@ Each export is saved as a timestamped file in the <code>data/</code> directory (
 <p>You very last line should always include the date-time stamp of the JSON ""downloaded_at"" field. This will let users know when this summary was produced. Because this value with be zulu(utc), convert it to Pacific Time. Use the format "This data summary was updated at <insert "downloaded_at" value>.</p>
 </blockquote>
 <hr />
-<h2>Hosting and Storage</h2>
-<p>Each JSON data summary is committed to the GitHub repository as historical reference. Full export files are kept for seven days then pruned via the GitHub workflow action.<br />
-GitHub provides a <strong>1 GB soft limit</strong> for repositories and <strong>2 GB hard limit</strong></p>
+<h2>Hosting, Storage and Data Retention</h2>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Where it lives</th>
+<th>How long</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Summaries (<code>data/archive/</code>, <code>data/summary_results_current.json</code>), LLM status text, dashboards and charts</td>
+<td>Committed to this repository on every run</td>
+<td>Full history, kept indefinitely</td>
+</tr>
+<tr>
+<td>Raw City exports (<code>service_requests_full_*.json.gz</code>)</td>
+<td>Never committed. One export per ISO week is saved as an asset on a draft release (visible to maintainers only)</td>
+<td>12 weeks, then pruned automatically</td>
+</tr>
+</tbody>
+</table>
+<p>Every run downloads the City's <strong>complete</strong> dataset (every service request back to 2020), so the newest export always contains every record. The weekly copies guard against the source data being edited or withdrawn; they are not needed to rebuild the summaries.</p>
+<p>Keeping full exports (about 11 MB each, six a day) out of git keeps the repository practical to clone and keeps the automated runs fast. The weekly retention lives in <code>.github/scripts/snapshot_raw_export.sh</code>.</p>
 <hr />
 <h2>Automated Social Media Publishing Using Make.com Scenario</h2>
 <p><img alt="Hustle Long Beach Make.com Scenario" src="https://hustlelongbeach.com/docs/Hustle_Long_Beach-Make_dot_com-Scenario_Workflow-Social_Publsihing.png" /></p>
@@ -281,7 +302,7 @@ Python Software Foundation License.</p>
   </div>
 
   <p style="text-align:center; margin:20px 0; font-size:0.9em;">
-    Documentation generated on October 07, 2026 at 10:50:33 AM PDT
+    Documentation generated on October 07, 2026 at 12:46:38 PM PDT
   </p>
 
   <div style="text-align:center; margin:40px auto 20px auto; max-width:800px;">

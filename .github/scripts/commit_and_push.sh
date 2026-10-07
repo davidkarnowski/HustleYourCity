@@ -13,14 +13,19 @@
 #   PUSH_BRANCH           branch to push to     (default: the checked-out branch)
 #   PUSH_ATTEMPTS         push attempts         (default: 5)
 #   PUSH_BACKOFF_SECONDS  base wait; attempt n waits n*n*base (default: 15)
+#   PUSH_ANNOTATIONS      0 = plain errors, no Actions annotations (default: 1)
 set -euo pipefail
+
+err() {
+  if [ "${PUSH_ANNOTATIONS:-1}" = 1 ]; then echo "::error::$*"; else echo "error: $*"; fi
+}
 
 message=${1:?usage: commit_and_push.sh "<message>" <path>...}
 shift
 remote=${PUSH_REMOTE:-origin}
 branch=${PUSH_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
 if [ "$branch" = "HEAD" ]; then
-  echo "::error::Detached HEAD; set PUSH_BRANCH."
+  err "Detached HEAD; set PUSH_BRANCH."
   exit 1
 fi
 attempts=${PUSH_ATTEMPTS:-5}
@@ -56,10 +61,10 @@ for attempt in $(seq 1 "$attempts"); do
   # wrote the same files; stop rather than guess which output is right.
   if ! git pull --rebase --autostash "$remote" "$branch"; then
     git rebase --abort 2>/dev/null || true
-    echo "::error::Rebase onto $remote/$branch conflicted; not pushing."
+    err "Rebase onto $remote/$branch conflicted; not pushing."
     exit 1
   fi
 done
 
-echo "::error::Push failed after $attempts attempts."
+err "Push failed after $attempts attempts."
 exit 1

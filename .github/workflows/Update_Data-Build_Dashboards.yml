@@ -37,7 +37,7 @@ concurrency:
 
 jobs:
   export_parse_infer_dashboard:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04  # pinned; verified by pipeline-check.yml
     timeout-minutes: 60
     permissions:
       contents: write

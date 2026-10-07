@@ -8,7 +8,7 @@ set -euo pipefail
 script="$(cd "$(dirname "$0")" && pwd)/commit_and_push.sh"
 root="$(mktemp -d)"
 trap 'rm -rf "$root"' EXIT
-export PUSH_BACKOFF_SECONDS=0 GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.invalid \
+export PUSH_BACKOFF_SECONDS=0 PUSH_ANNOTATIONS=0 GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.invalid \
   GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.invalid
 fail() { echo "FAIL: $*"; exit 1; }
 

@@ -8,7 +8,7 @@ on:
 
 jobs:
   trigger_daily_make:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04  # pinned; verified by pipeline-check.yml
     permissions:
       contents: read
 

@@ -5,7 +5,7 @@ on:
 
 jobs:
   run-llm-inference:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04  # pinned; verified by pipeline-check.yml
 
     permissions:
       contents: write   # Allows writing output text files to repo if needed

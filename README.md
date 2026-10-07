@@ -48,7 +48,7 @@ Explore the latest city service response time dashboards by time period (updated
 
 ### `full_exporter.py`
 Downloads the complete dataset from the Long Beach open data API using the JSON export endpoint.  
-Each export is saved as a timestamped file in the `data/` directory (e.g. `service_requests_full_20251016_070000.json`).
+Each export is saved as a timestamped file in the `data/` directory (e.g. `service_requests_full_20251016_070000.json`) for the duration of the run. Raw exports are not committed; see [Data Retention](#hosting-storage-and-data-retention).
 
 **Functions:**
 - Fetch full dataset via the `exports/json` API.
@@ -99,7 +99,7 @@ The project is designed to run automatically in the cloud using **GitHub Actions
 **Workflow:**
 - Triggered every 4 hours, approximately ten minutes after each dataset update by the City of Long Beach (Pacific Time)
 - Runs the exporter, parser, LLM inference routine and dashboard and chart generators
-- Saves each dataset and summary to the repository for historical tracking
+- Commits each summary, chart and dashboard to the repository for historical tracking (raw exports are not committed)
 
 **Example GitHub Actions Schedule (UTC):**
 ```yaml
@@ -195,10 +195,16 @@ While the calculations are accurate to the timestamps and data provided, users s
 
 ---
 
-## Hosting and Storage
+## Hosting, Storage and Data Retention
 
-Each JSON data summary is committed to the GitHub repository as historical reference. Full export files are kept for seven days then pruned via the GitHub workflow action.  
-GitHub provides a **1 GB soft limit** for repositories and **2 GB hard limit**
+| Data | Where it lives | How long |
+|---|---|---|
+| Summaries (`data/archive/`, `data/summary_results_current.json`), LLM status text, dashboards and charts | Committed to this repository on every run | Full history, kept indefinitely |
+| Raw City exports (`service_requests_full_*.json.gz`) | Never committed. One export per ISO week is saved as an asset on a draft release (visible to maintainers only) | 12 weeks, then pruned automatically |
+
+Every run downloads the City's **complete** dataset (every service request back to 2020), so the newest export always contains every record. The weekly copies guard against the source data being edited or withdrawn; they are not needed to rebuild the summaries.
+
+Keeping full exports (about 11 MB each, six a day) out of git keeps the repository practical to clone and keeps the automated runs fast. The weekly retention lives in `.github/scripts/snapshot_raw_export.sh`.
 
 ---
 

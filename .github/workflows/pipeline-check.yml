@@ -1,0 +1,106 @@
+name: Pipeline Check (no commit)
+
+# Verifies the data pipeline on candidate runner images without writing to the
+# repo: the push/retry logic against local throwaway repos, then a full
+# export → summary → dashboards → about-page run that discards its output.
+# The LLM step is skipped (it is provider calls, not runner-dependent) and the
+# dashboards render from the current_*.txt already in the tree.
+
+on:
+  push:
+    branches: ["maintenance/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: pipeline-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  push-logic:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Test commit_and_push.sh
+        run: |
+          git --version
+          .github/scripts/test_commit_and_push.sh
+
+  pipeline-dry-run:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip freeze
+
+      - name: Export raw data
+        run: python full_exporter.py
+
+      - name: Parse summary
+        run: python type_status_response_summary.py
+
+      - name: Generate dashboards and charts
+        run: python generate_dashboard.py
+
+      - name: Generate About Page
+        run: python generate_about_page.py
+
+      - name: What a real run would commit
+        run: |
+          rm -f data/service_requests_full_*.json data/service_requests_full_*.json.gz
+          {
+            echo "### ${{ matrix.os }} / Python $(python --version | cut -d' ' -f2)"
+            echo '```'
+            git status --short | head -40
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  python-versions:
+    # Python 3.11 reaches end of life in 2027-10; check newer ones on 26.04.
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install and compile
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m compileall -q .
+          # generate_about_page.py runs on import; it is exercised by pipeline-dry-run.
+          python -c "import full_exporter, type_status_response_summary, generate_dashboard, llm.runner"

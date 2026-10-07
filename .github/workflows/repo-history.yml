@@ -1,0 +1,60 @@
+name: Repo History Maintenance
+
+# Read-only for now: clones the full history on the runner and reports what
+# fills it (git filter-repo --analyze). Nothing is pushed.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["maintenance/**"]
+    paths:
+      - ".github/workflows/repo-history.yml"
+      - ".github/scripts/summarize_history.py"
+
+concurrency:
+  group: repo-history
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          path: tools
+
+      - name: Install git-filter-repo
+        run: pipx install git-filter-repo==2.47.0
+
+      - name: Mirror-clone full history
+        run: |
+          start=$(date +%s)
+          git clone --mirror --quiet "https://github.com/${GITHUB_REPOSITORY}.git" history.git
+          echo "Clone took $(( $(date +%s) - start ))s"
+          git -C history.git count-objects -vH
+
+      - name: Analyze
+        run: |
+          cd history.git
+          git filter-repo --analyze
+          {
+            echo "# History analysis"
+            echo
+            echo '```'
+            git count-objects -vH
+            echo "commits: $(git rev-list --count --all)"
+            echo '```'
+            python3 "$GITHUB_WORKSPACE/tools/.github/scripts/summarize_history.py" filter-repo/analysis
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: filter-repo-analysis
+          path: history.git/filter-repo/analysis
+          retention-days: 30

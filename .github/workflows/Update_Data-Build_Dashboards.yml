@@ -29,20 +29,28 @@ on:
     - cron: "10 11 * * *"
   workflow_dispatch:
 
+# One pipeline run at a time. A slow run (e.g. during a GitHub outage) queues
+# the next scheduled one instead of racing it to push.
+concurrency:
+  group: data-pipeline
+  cancel-in-progress: false
+
 jobs:
   export_parse_infer_dashboard:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: write
       actions: read
-      id-token: write
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
         with:
           persist-credentials: true
-          fetch-depth: 0
+          # Shallow: the pipeline only needs the current tree, and a full
+          # clone of the history is slow and fragile during GitHub incidents.
+          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -98,24 +106,15 @@ jobs:
           rm -f data/service_requests_full_*.json data/service_requests_full_*.json.gz
           echo "Raw exports removed from working tree (will not be committed)."
 
-      # 8) Single commit + push (explicit staging — see Plan 01 Task 1.2 for rationale)
+      # 8) Single commit + push (explicit staging — see Plan 01 Task 1.2 for rationale).
+      # Raw service_requests_full_*.json.gz are intentionally NOT staged
+      # (Phase 1.2 — halts the largest contributor to repo bloat).
+      # The script retries the push with backoff and rebases with --autostash.
       - name: Commit and push all updates
         run: |
-          echo "Preparing commit for data + dashboards + charts..."
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Stage only the artifacts intended for the public site.
-          # Raw service_requests_full_*.json.gz are intentionally NOT staged
-          # (Phase 1.2 — halts the largest contributor to repo bloat).
-          git add data/dashboard/ data/charts/
-          git add data/summary_results_current.json
-          git add data/current_*.txt
-          git add data/archive/
-          git add data/logs/
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Automated: data export, LLM summaries, dashboards & charts [skip ci]"
-            git push origin main || (git pull --rebase && git push origin main)
-          fi
+          .github/scripts/commit_and_push.sh \
+            "Automated: data export, LLM summaries, dashboards & charts [skip ci]" \
+            data/dashboard/ data/charts/ data/summary_results_current.json \
+            data/current_*.txt data/archive/ data/logs/

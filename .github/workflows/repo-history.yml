@@ -3,15 +3,22 @@ name: Repo History Maintenance
 # Removes raw City exports (data/service_requests_full_*.json[.gz]) from git
 # history. Charts, summaries and everything else keep their full history.
 #
-#   analyze  — report what fills the history. Read-only.
+#   analyze  — report what fills the history (full clone). Read-only.
 #   dry-run  — do the whole rewrite on the runner and verify it; push nothing,
 #              upload nothing.
-#   rewrite  — first save a full backup bundle and one raw export per month
-#              to draft (collaborators-only) releases, then rewrite and
+#   rewrite  — first save one raw export per month and the old->new commit
+#              map to a draft (collaborators-only) release, then rewrite and
 #              force-push with a lease. Needs confirm = "REWRITE" and the
-#              HISTORY_REWRITE_TOKEN secret (fine-grained PAT for this repo:
-#              Contents + Workflows read/write) — the default token cannot
-#              push commits that touch .github/workflows/.
+#              HISTORY_REWRITE_DEPLOY_KEY secret: the private half of a
+#              temporary write deploy key (gh repo deploy-key add
+#              --allow-write), removed again after the rewrite. The default
+#              token cannot push commits that touch .github/workflows/.
+#
+# dry-run and rewrite use a partial clone that skips blobs over 5 MB. Every
+# raw export is >= 10 MB and every other file in history is < 1 MB, so the
+# clone holds the full history minus the raw exports (~1 GB instead of
+# ~6 GB). Lazy fetching is disabled while rewriting, so a missing blob fails
+# loudly instead of downloading.
 
 on:
   workflow_dispatch:
@@ -42,13 +49,14 @@ permissions:
 env:
   MODE: ${{ inputs.mode || 'dry-run' }}
   RAW_GLOB: data/service_requests_full_*
+  BLOB_LIMIT: 5m
 
 jobs:
   history:
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: 90
     permissions:
-      contents: write   # draft releases for the backup and monthly snapshots
+      contents: write   # draft release for the monthly snapshots + commit map
     steps:
       - name: Refuse rewrite without confirmation
         if: env.MODE == 'rewrite' && inputs.confirm != 'REWRITE'
@@ -62,20 +70,17 @@ jobs:
           persist-credentials: false
           path: tools
 
-      - name: Free runner disk (backup bundle needs ~12 GB)
-        if: env.MODE == 'rewrite'
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h /
-
       - name: Install git-filter-repo
         run: pipx install git-filter-repo==2.47.0
 
-      - name: Mirror-clone full history
+      - name: Mirror-clone history (partial unless analyzing)
         run: |
+          filter=()
+          [ "$MODE" = analyze ] || filter=(--filter="blob:limit=$BLOB_LIMIT")
           start=$(date +%s)
-          git clone --mirror --quiet "https://github.com/${GITHUB_REPOSITORY}.git" history.git
-          echo "Clone took $(( $(date +%s) - start ))s"
+          git clone --mirror --quiet "${filter[@]}" "https://github.com/${GITHUB_REPOSITORY}.git" history.git
+          echo "Clone took $(( $(date +%s) - start ))s" | tee -a "$GITHUB_STEP_SUMMARY"
+          du -sh history.git | tee -a "$GITHUB_STEP_SUMMARY"
           git -C history.git for-each-ref --format='%(objectname) %(refname)' refs/heads refs/tags \
             | tee refs-before.txt
           git -C history.git rev-list --count --all > commits-before.txt
@@ -83,7 +88,22 @@ jobs:
             echo "$ref $(git -C history.git rev-parse "$sha^{tree}")"
           done < refs-before.txt > trees-before.txt
 
+      - name: Check that only raw-export blobs are missing
+        if: env.MODE != 'analyze'
+        env:
+          GIT_NO_LAZY_FETCH: "1"
+        run: |
+          cd history.git
+          git rev-list --all --objects --missing=print | sed -n 's/^?//p' | sort -u > ../missing.txt
+          git log --all --no-renames --format= --raw --no-abbrev -- "$RAW_GLOB" | awk '{print $4}' \
+            | grep -v '^0\{40\}$' | sort -u > ../raw-blobs.txt
+          extra=$(comm -23 ../missing.txt ../raw-blobs.txt | wc -l)
+          echo "missing blobs: $(wc -l < ../missing.txt), raw-export blobs: $(wc -l < ../raw-blobs.txt), missing non-raw: $extra" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$((extra))" -eq 0 ] || { echo "::error::non-raw blobs are missing; raise BLOB_LIMIT"; exit 1; }
+
       - name: Analyze
+        if: env.MODE == 'analyze'
         run: |
           cd history.git
           git filter-repo --analyze
@@ -106,7 +126,7 @@ jobs:
       - name: Pick one raw export per month (the last of each month)
         if: env.MODE != 'analyze'
         run: |
-          git -C history.git log --all --diff-filter=A --format='C %H' --name-only -- "$RAW_GLOB" \
+          git -C history.git log --all --no-renames --diff-filter=A --format='C %H' --name-only -- "$RAW_GLOB" \
             | awk '/^C /{c=$2; next} NF{print c, $0}' \
             | sort -k2 \
             | awk '{m=substr($2, length("data/service_requests_full_")+1, 7); last[m]=$0} END{for (m in last) print last[m]}' \
@@ -125,27 +145,6 @@ jobs:
           done < monthly.txt
           ls -l snapshots
 
-      - name: Back up full history to a draft release
-        if: env.MODE == 'rewrite'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          tag="history-backup-$(date -u +%Y%m%d)"
-          mkdir -p backup
-          git -C history.git bundle create "$PWD/backup/full.bundle" --all
-          git -C history.git bundle verify "$PWD/backup/full.bundle"
-          (cd backup && sha256sum full.bundle > full.bundle.sha256 \
-            && split -b 1900M -d full.bundle full.bundle.part- && rm full.bundle)
-          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft \
-            --title "Full git history backup before raw-export removal ($(date -u +%F))" \
-            --notes "Restore: cat full.bundle.part-* > full.bundle && sha256sum -c full.bundle.sha256 && git clone --mirror full.bundle"
-          for f in backup/*; do
-            gh release upload "$tag" "$f" --repo "$GITHUB_REPOSITORY"
-            rm -f "$f"
-          done
-          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[] | "\(.name) \(.size)"' \
-            | tee -a "$GITHUB_STEP_SUMMARY"
-
       - name: Save monthly raw snapshots to a draft release
         if: env.MODE == 'rewrite'
         env:
@@ -160,6 +159,8 @@ jobs:
 
       - name: Remove raw exports from history
         if: env.MODE != 'analyze'
+        env:
+          GIT_NO_LAZY_FETCH: "1"
         run: |
           cd history.git
           git filter-repo --force --prune-empty never \
@@ -177,13 +178,15 @@ jobs:
 
       - name: Verify
         if: env.MODE != 'analyze'
+        env:
+          GIT_NO_LAZY_FETCH: "1"
         run: |
           cd history.git
           # Same commit count, no raw exports anywhere, identical tip trees.
           before=$(cat ../commits-before.txt)
           after=$(git rev-list --count --all)
           [ "$after" = "$before" ] || { echo "::error::commit count changed: $before -> $after"; exit 1; }
-          left=$(git log --all --format= --name-only -- "$RAW_GLOB" | grep -c . || true)
+          left=$(git log --all --no-renames --format= --name-only -- "$RAW_GLOB" | grep -c . || true)
           [ "$left" = 0 ] || { echo "::error::$left raw-export paths remain"; exit 1; }
           while read -r ref tree; do
             now=$(git rev-parse "$ref^{tree}")
@@ -194,18 +197,41 @@ jobs:
           done < ../trees-before.txt
           git fsck --connectivity-only --no-progress
           echo "Verified: $before commits, tips unchanged." | tee -a "$GITHUB_STEP_SUMMARY"
+          mkdir -p ../rewrite-map && cp filter-repo/commit-map filter-repo/ref-map ../refs-before.txt ../rewrite-map/
+
+      - uses: actions/upload-artifact@v7
+        if: env.MODE != 'analyze'
+        with:
+          name: rewrite-map-${{ env.MODE }}
+          path: rewrite-map
+          retention-days: 30
+
+      - name: Save old->new commit map to the snapshot release
+        if: env.MODE == 'rewrite'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          (cd rewrite-map && tar czf "../rewrite-map-$(date -u +%Y%m%d).tar.gz" .)
+          gh release upload raw-snapshots-monthly-history rewrite-map-*.tar.gz \
+            --repo "$GITHUB_REPOSITORY" --clobber
 
       - name: Force-push rewritten history (with lease)
         if: env.MODE == 'rewrite'
         env:
-          TOKEN: ${{ secrets.HISTORY_REWRITE_TOKEN }}
+          DEPLOY_KEY: ${{ secrets.HISTORY_REWRITE_DEPLOY_KEY }}
+          GIT_NO_LAZY_FETCH: "1"
         run: |
-          [ -n "$TOKEN" ] || { echo "::error::HISTORY_REWRITE_TOKEN secret is not set"; exit 1; }
+          [ -n "$DEPLOY_KEY" ] || { echo "::error::HISTORY_REWRITE_DEPLOY_KEY secret is not set"; exit 1; }
+          key="$RUNNER_TEMP/rewrite_key"; hosts="$RUNNER_TEMP/github_known_hosts"
+          trap 'rm -f "$key"' EXIT
+          (umask 077 && printf '%s\n' "$DEPLOY_KEY" > "$key")
+          # GitHub's SSH host keys, fetched over HTTPS from its API.
+          curl -fsS https://api.github.com/meta | jq -r '.ssh_keys[] | "github.com " + .' > "$hosts"
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o UserKnownHostsFile=$hosts -o StrictHostKeyChecking=yes"
           cd history.git
-          url="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           args=()
           while read -r old ref; do
             args+=("--force-with-lease=$ref:$old" "$ref:$ref")
           done < ../refs-before.txt
-          git push --atomic "$url" "${args[@]}"
+          git push --atomic "git@github.com:${GITHUB_REPOSITORY}.git" "${args[@]}"
           echo "Pushed rewritten refs." | tee -a "$GITHUB_STEP_SUMMARY"

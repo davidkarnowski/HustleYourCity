@@ -37,9 +37,9 @@
         "avg_response_hours": 1355.834341001877
       },
       "E-Scooter": {
-        "total": 47775,
+        "total": 47777,
         "status_counts": {
-          "Closed Referred": 47763,
+          "Closed Referred": 47765,
           "New": 3,
           "Closed": 5,
           "Duplicate": 4
@@ -83,14 +83,14 @@
         "avg_response_hours": 357.87490682690304
       },
       "Dumped Items": {
-        "total": 138583,
+        "total": 138586,
         "status_counts": {
           "Closed": 130233,
           "In Progress": 2487,
           "Cancelled": 2461,
           "Closed Referred": 2387,
-          "New": 354,
-          "Duplicate": 661
+          "New": 356,
+          "Duplicate": 662
         },
         "avg_response_hours": 288.1611298447254
       },
@@ -139,11 +139,12 @@
         "avg_response_hours": 172.65207112332118
       },
       "Dead Animal Pickup": {
-        "total": 6738,
+        "total": 6739,
         "status_counts": {
           "Closed": 6651,
           "Cancelled": 82,
-          "Closed Referred": 5
+          "Closed Referred": 5,
+          "New": 1
         },
         "avg_response_hours": 3334.055336853994
       },
@@ -294,21 +295,22 @@
         "avg_response_hours": 124.58472222222228
       },
       "Dumped Items": {
-        "total": 8174,
+        "total": 8177,
         "status_counts": {
           "Closed": 4795,
           "In Progress": 2306,
           "Closed Referred": 154,
-          "Duplicate": 616,
+          "Duplicate": 617,
           "Cancelled": 41,
-          "New": 262
+          "New": 264
         },
         "avg_response_hours": 364.768694333109
       },
       "Dead Animal Pickup": {
-        "total": 542,
+        "total": 543,
         "status_counts": {
-          "Closed": 542
+          "Closed": 542,
+          "New": 1
         },
         "avg_response_hours": 6.626080873308738
       },
@@ -321,9 +323,9 @@
         "avg_response_hours": 11.408920479302825
       },
       "E-Scooter": {
-        "total": 2879,
+        "total": 2881,
         "status_counts": {
-          "Closed Referred": 2878,
+          "Closed Referred": 2880,
           "Duplicate": 1
         },
         "avg_response_hours": null
@@ -521,21 +523,22 @@
         "avg_response_hours": 84.224163969795
       },
       "Dumped Items": {
-        "total": 5185,
+        "total": 5187,
         "status_counts": {
-          "Closed": 2183,
+          "Closed": 2182,
           "In Progress": 2049,
           "Closed Referred": 96,
-          "Duplicate": 573,
+          "Duplicate": 574,
           "Cancelled": 27,
-          "New": 257
+          "New": 259
         },
-        "avg_response_hours": 225.22277091163215
+        "avg_response_hours": 225.09909689081772
       },
       "Dead Animal Pickup": {
-        "total": 355,
+        "total": 356,
         "status_counts": {
-          "Closed": 355
+          "Closed": 355,
+          "New": 1
         },
         "avg_response_hours": 7.366151799687019
       },
@@ -548,9 +551,9 @@
         "avg_response_hours": 11.100226608187137
       },
       "E-Scooter": {
-        "total": 2144,
+        "total": 2146,
         "status_counts": {
-          "Closed Referred": 2144
+          "Closed Referred": 2146
         },
         "avg_response_hours": null
       },
@@ -733,9 +736,9 @@
         "avg_response_hours": 35.113006511704604
       },
       "E-Scooter": {
-        "total": 1093,
+        "total": 1095,
         "status_counts": {
-          "Closed Referred": 1093
+          "Closed Referred": 1095
         },
         "avg_response_hours": null
       },
@@ -749,14 +752,14 @@
         "avg_response_hours": 64.94372685185186
       },
       "Dumped Items": {
-        "total": 2385,
+        "total": 2387,
         "status_counts": {
-          "In Progress": 1043,
-          "Duplicate": 372,
+          "In Progress": 1042,
+          "Duplicate": 373,
           "Closed": 670,
           "Closed Referred": 42,
           "Cancelled": 6,
-          "New": 252
+          "New": 254
         },
         "avg_response_hours": 72.81627398638186
       },
@@ -791,9 +794,10 @@
         "avg_response_hours": null
       },
       "Dead Animal Pickup": {
-        "total": 153,
+        "total": 154,
         "status_counts": {
-          "Closed": 153
+          "Closed": 153,
+          "New": 1
         },
         "avg_response_hours": 5.207536310820625
       },
@@ -946,9 +950,9 @@
         "avg_response_hours": 21.367071865443425
       },
       "E-Scooter": {
-        "total": 259,
+        "total": 261,
         "status_counts": {
-          "Closed Referred": 259
+          "Closed Referred": 261
         },
         "avg_response_hours": null
       },
@@ -989,9 +993,10 @@
         "avg_response_hours": null
       },
       "Dead Animal Pickup": {
-        "total": 36,
+        "total": 37,
         "status_counts": {
-          "Closed": 36
+          "Closed": 36,
+          "New": 1
         },
         "avg_response_hours": 6.030771604938272
       },
@@ -1022,10 +1027,10 @@
         "avg_response_hours": 13.219880952380953
       },
       "Dumped Items": {
-        "total": 568,
+        "total": 571,
         "status_counts": {
-          "New": 250,
-          "Duplicate": 72,
+          "New": 252,
+          "Duplicate": 73,
           "Closed": 84,
           "In Progress": 155,
           "Closed Referred": 7
@@ -1128,26 +1133,18 @@
   },
   "Last 1 Days": {
     "types": {
-      "Light": {
-        "total": 8,
-        "status_counts": {
-          "New": 6,
-          "Duplicate": 2
-        },
-        "avg_response_hours": null
-      },
       "Dumped Items": {
-        "total": 59,
+        "total": 61,
         "status_counts": {
-          "New": 52,
-          "Duplicate": 7
+          "New": 53,
+          "Duplicate": 8
         },
         "avg_response_hours": null
       },
       "E-Scooter": {
-        "total": 55,
+        "total": 57,
         "status_counts": {
-          "Closed Referred": 55
+          "Closed Referred": 57
         },
         "avg_response_hours": null
       },
@@ -1190,6 +1187,14 @@
         },
         "avg_response_hours": null
       },
+      "Light": {
+        "total": 7,
+        "status_counts": {
+          "Duplicate": 2,
+          "New": 5
+        },
+        "avg_response_hours": null
+      },
       "Report Food Truck Vending Concerns": {
         "total": 2,
         "status_counts": {
@@ -1203,6 +1208,14 @@
           "New": 3
         },
         "avg_response_hours": null
+      },
+      "Dead Animal Pickup": {
+        "total": 4,
+        "status_counts": {
+          "New": 1,
+          "Closed": 3
+        },
+        "avg_response_hours": 0.7975925925925926
       },
       "Animal Services": {
         "total": 3,
@@ -1218,13 +1231,6 @@
           "New": 1
         },
         "avg_response_hours": null
-      },
-      "Dead Animal Pickup": {
-        "total": 3,
-        "status_counts": {
-          "Closed": 3
-        },
-        "avg_response_hours": 0.7975925925925926
       },
       "Vegetation": {
         "total": 3,
@@ -1251,26 +1257,20 @@
   },
   "Last 4 Hours": {
     "types": {
-      "Vegetation": {
-        "total": 1,
+      "Dumped Items": {
+        "total": 2,
         "status_counts": {
-          "New": 1
-        },
-        "avg_response_hours": null
-      },
-      "Street Repair": {
-        "total": 1,
-        "status_counts": {
-          "New": 1
+          "New": 1,
+          "Duplicate": 1
         },
         "avg_response_hours": null
       }
     }
   },
   "source_update_times": {
-    "data_processed_at": "2026-10-18T06:00:25Z",
-    "metadata_processed_at": "2026-10-18T06:00:25Z",
-    "modified_at": "2026-10-18T06:00:25Z"
+    "data_processed_at": "2026-10-18T10:00:23Z",
+    "metadata_processed_at": "2026-10-18T10:00:23Z",
+    "modified_at": "2026-10-18T10:00:23Z"
   },
-  "downloaded_at": "2026-10-18T07:57:00Z"
+  "downloaded_at": "2026-10-18T12:01:00Z"
 }

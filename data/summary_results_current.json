@@ -1,174 +1,61 @@
 {
   "All-Time": {
     "types": {
-      "Trash & Debris": {
-        "total": 2863,
+      "Animal Services": {
+        "total": 4267,
         "status_counts": {
-          "Closed": 2522,
-          "In Progress": 50,
-          "Closed Referred": 132,
-          "Cancelled": 97,
-          "Duplicate": 11,
-          "New": 51
+          "Closed": 4062,
+          "Cancelled": 192,
+          "Closed Referred": 12,
+          "New": 1
         },
-        "avg_response_hours": 1244.7389592673344
-      },
-      "Park Maintenance": {
-        "total": 4574,
-        "status_counts": {
-          "Closed": 4168,
-          "Closed Referred": 168,
-          "Duplicate": 19,
-          "In Progress": 189,
-          "Cancelled": 8,
-          "New": 22
-        },
-        "avg_response_hours": 779.2292977542437
-      },
-      "Running Water": {
-        "total": 1189,
-        "status_counts": {
-          "Closed": 522,
-          "Closed Referred": 485,
-          "In Progress": 168,
-          "Duplicate": 7,
-          "New": 7
-        },
-        "avg_response_hours": 1355.834341001877
-      },
-      "E-Scooter": {
-        "total": 48054,
-        "status_counts": {
-          "Closed Referred": 48042,
-          "New": 3,
-          "Closed": 5,
-          "Duplicate": 4
-        },
-        "avg_response_hours": null
-      },
-      "Tree Maintenance": {
-        "total": 16809,
-        "status_counts": {
-          "Closed": 12275,
-          "In Progress": 3664,
-          "Closed Referred": 318,
-          "Duplicate": 314,
-          "Cancelled": 14,
-          "New": 224
-        },
-        "avg_response_hours": 3444.907627111929
-      },
-      "Vegetation": {
-        "total": 3615,
-        "status_counts": {
-          "Closed": 2166,
-          "Closed Referred": 804,
-          "In Progress": 591,
-          "Duplicate": 24,
-          "New": 27,
-          "Cancelled": 3
-        },
-        "avg_response_hours": 2457.5745636655847
+        "avg_response_hours": 3117.2991669922317
       },
       "Graffiti": {
-        "total": 84685,
+        "total": 84686,
         "status_counts": {
           "Closed": 79374,
           "Closed Referred": 2573,
-          "In Progress": 1829,
+          "In Progress": 1830,
           "Duplicate": 678,
           "New": 177,
           "Cancelled": 54
         },
-        "avg_response_hours": 357.658199974529
+        "avg_response_hours": 357.6581999745295
       },
       "Dumped Items": {
-        "total": 139167,
+        "total": 139168,
         "status_counts": {
+          "Closed Referred": 2397,
           "Closed": 130465,
           "In Progress": 2719,
+          "New": 348,
           "Cancelled": 2461,
-          "Closed Referred": 2397,
-          "New": 347,
           "Duplicate": 778
         },
-        "avg_response_hours": 287.8905560050956
+        "avg_response_hours": 287.89055600509784
+      },
+      "E-Scooter": {
+        "total": 48055,
+        "status_counts": {
+          "Closed Referred": 48043,
+          "Closed": 5,
+          "New": 3,
+          "Duplicate": 4
+        },
+        "avg_response_hours": null
       },
       "Street Repair": {
         "total": 17019,
         "status_counts": {
-          "In Progress": 2157,
           "Closed": 13894,
+          "In Progress": 2157,
           "Closed Referred": 391,
           "Duplicate": 502,
           "Cancelled": 3,
           "New": 72
         },
-        "avg_response_hours": 4312.246912405118
-      },
-      "Shoes on a Utility Wire": {
-        "total": 915,
-        "status_counts": {
-          "Closed Referred": 623,
-          "Closed": 275,
-          "In Progress": 14,
-          "Duplicate": 1,
-          "New": 2
-        },
-        "avg_response_hours": 59.43775581539228
-      },
-      "Animal Services": {
-        "total": 4266,
-        "status_counts": {
-          "Closed": 4062,
-          "Cancelled": 192,
-          "Closed Referred": 12
-        },
-        "avg_response_hours": 3117.2991669922344
-      },
-      "Report Business Licenses/Permit Concerns": {
-        "total": 245,
-        "status_counts": {
-          "Closed": 191,
-          "New": 24,
-          "Duplicate": 25,
-          "Closed Referred": 4,
-          "Cancelled": 1
-        },
-        "avg_response_hours": 185.27079081632658
-      },
-      "Dead Animal Pickup": {
-        "total": 6786,
-        "status_counts": {
-          "Closed": 6697,
-          "Cancelled": 82,
-          "Closed Referred": 6,
-          "New": 1
-        },
-        "avg_response_hours": 3311.035737247194
-      },
-      "Traffic Signal": {
-        "total": 2400,
-        "status_counts": {
-          "In Progress": 290,
-          "Closed": 2034,
-          "Closed Referred": 72,
-          "Duplicate": 1,
-          "New": 3
-        },
-        "avg_response_hours": 2222.4475804579515
-      },
-      "Sidewalk Repair": {
-        "total": 7363,
-        "status_counts": {
-          "Closed": 4277,
-          "In Progress": 2593,
-          "Closed Referred": 259,
-          "Duplicate": 164,
-          "New": 66,
-          "Cancelled": 4
-        },
-        "avg_response_hours": 4305.306010217813
+        "avg_response_hours": 4312.2469124051195
       },
       "Light": {
         "total": 9307,
@@ -180,28 +67,131 @@
           "New": 17,
           "Cancelled": 2
         },
-        "avg_response_hours": 891.0895524854981
+        "avg_response_hours": 891.0895524854982
       },
-      "Report Food Truck Vending Concerns": {
-        "total": 223,
+      "Vegetation": {
+        "total": 3615,
         "status_counts": {
-          "Closed": 15,
-          "Duplicate": 98,
-          "New": 87,
-          "In Progress": 23
+          "Closed": 2166,
+          "In Progress": 591,
+          "Closed Referred": 804,
+          "Duplicate": 24,
+          "New": 27,
+          "Cancelled": 3
         },
-        "avg_response_hours": 135.6782037037037
+        "avg_response_hours": 2457.5745636655797
+      },
+      "Trash & Debris": {
+        "total": 2863,
+        "status_counts": {
+          "Closed": 2522,
+          "Cancelled": 97,
+          "Closed Referred": 132,
+          "In Progress": 50,
+          "Duplicate": 11,
+          "New": 51
+        },
+        "avg_response_hours": 1244.738959267335
+      },
+      "Sidewalk Repair": {
+        "total": 7363,
+        "status_counts": {
+          "Closed": 4277,
+          "In Progress": 2593,
+          "Closed Referred": 259,
+          "Duplicate": 164,
+          "New": 66,
+          "Cancelled": 4
+        },
+        "avg_response_hours": 4305.306010217817
+      },
+      "Shoes on a Utility Wire": {
+        "total": 915,
+        "status_counts": {
+          "Closed Referred": 623,
+          "Closed": 275,
+          "In Progress": 14,
+          "Duplicate": 1,
+          "New": 2
+        },
+        "avg_response_hours": 59.43775581539222
+      },
+      "Report Illegal Firework": {
+        "total": 3202,
+        "status_counts": {
+          "Closed": 2936,
+          "In Progress": 248,
+          "Duplicate": 6,
+          "New": 12
+        },
+        "avg_response_hours": 325.87738343929806
       },
       "Abandoned Shopping Cart": {
         "total": 3801,
         "status_counts": {
           "Closed": 3558,
           "Closed Referred": 210,
-          "Cancelled": 29,
           "New": 3,
+          "Cancelled": 29,
           "Duplicate": 1
         },
-        "avg_response_hours": 43.87758808123363
+        "avg_response_hours": 43.87758808123373
+      },
+      "Dead Animal Pickup": {
+        "total": 6786,
+        "status_counts": {
+          "Closed": 6697,
+          "Cancelled": 82,
+          "Closed Referred": 6,
+          "New": 1
+        },
+        "avg_response_hours": 3311.035737247196
+      },
+      "Tree Maintenance": {
+        "total": 16809,
+        "status_counts": {
+          "Closed": 12275,
+          "Closed Referred": 318,
+          "In Progress": 3664,
+          "Duplicate": 314,
+          "Cancelled": 14,
+          "New": 224
+        },
+        "avg_response_hours": 3444.9076271119193
+      },
+      "Traffic Signal": {
+        "total": 2400,
+        "status_counts": {
+          "Closed": 2034,
+          "In Progress": 290,
+          "Closed Referred": 72,
+          "Duplicate": 1,
+          "New": 3
+        },
+        "avg_response_hours": 2222.4475804579483
+      },
+      "Report Business Licenses/Permit Concerns": {
+        "total": 245,
+        "status_counts": {
+          "Closed": 191,
+          "New": 24,
+          "Duplicate": 25,
+          "Closed Referred": 4,
+          "Cancelled": 1
+        },
+        "avg_response_hours": 185.27079081632655
+      },
+      "Park Maintenance": {
+        "total": 4574,
+        "status_counts": {
+          "Closed": 4168,
+          "In Progress": 189,
+          "Closed Referred": 168,
+          "Duplicate": 19,
+          "New": 22,
+          "Cancelled": 8
+        },
+        "avg_response_hours": 779.229297754243
       },
       "Community Center": {
         "total": 253,
@@ -213,40 +203,7 @@
           "In Progress": 4,
           "Duplicate": 1
         },
-        "avg_response_hours": 635.831638537271
-      },
-      "Marina Repair": {
-        "total": 218,
-        "status_counts": {
-          "Closed": 166,
-          "In Progress": 28,
-          "Closed Referred": 7,
-          "New": 10,
-          "Cancelled": 2,
-          "Duplicate": 5
-        },
-        "avg_response_hours": 1798.9080285714283
-      },
-      "Report Illegal Firework": {
-        "total": 3202,
-        "status_counts": {
-          "Closed": 2936,
-          "In Progress": 248,
-          "Duplicate": 6,
-          "New": 12
-        },
-        "avg_response_hours": 325.8773834392979
-      },
-      "Restroom Maintenance": {
-        "total": 478,
-        "status_counts": {
-          "Closed": 434,
-          "Closed Referred": 14,
-          "In Progress": 25,
-          "Cancelled": 2,
-          "New": 3
-        },
-        "avg_response_hours": 562.3372839506167
+        "avg_response_hours": 635.8316385372711
       },
       "Damaged Drinking Fountain": {
         "total": 68,
@@ -258,28 +215,101 @@
         },
         "avg_response_hours": 1182.7415837479273
       },
+      "Running Water": {
+        "total": 1189,
+        "status_counts": {
+          "Closed Referred": 485,
+          "Closed": 522,
+          "In Progress": 168,
+          "Duplicate": 7,
+          "New": 7
+        },
+        "avg_response_hours": 1355.834341001877
+      },
+      "Restroom Maintenance": {
+        "total": 478,
+        "status_counts": {
+          "Closed": 434,
+          "Closed Referred": 14,
+          "In Progress": 25,
+          "Cancelled": 2,
+          "New": 3
+        },
+        "avg_response_hours": 562.3372839506169
+      },
+      "Marina Repair": {
+        "total": 218,
+        "status_counts": {
+          "Closed": 166,
+          "In Progress": 28,
+          "New": 10,
+          "Closed Referred": 7,
+          "Cancelled": 2,
+          "Duplicate": 5
+        },
+        "avg_response_hours": 1798.9080285714283
+      },
       "News Rack": {
         "total": 266,
         "status_counts": {
-          "New": 223,
-          "Duplicate": 43
+          "Duplicate": 43,
+          "New": 223
         },
         "avg_response_hours": null
+      },
+      "Report Food Truck Vending Concerns": {
+        "total": 223,
+        "status_counts": {
+          "Closed": 15,
+          "New": 87,
+          "Duplicate": 98,
+          "In Progress": 23
+        },
+        "avg_response_hours": 135.6782037037037
       }
     }
   },
   "Last 90 Days": {
     "types": {
-      "Tree Maintenance": {
-        "total": 1085,
+      "E-Scooter": {
+        "total": 2907,
         "status_counts": {
-          "Closed": 485,
-          "In Progress": 314,
-          "Duplicate": 58,
-          "New": 224,
-          "Closed Referred": 4
+          "Closed Referred": 2907
         },
-        "avg_response_hours": 101.9404447852761
+        "avg_response_hours": null
+      },
+      "Street Repair": {
+        "total": 481,
+        "status_counts": {
+          "Closed": 274,
+          "Closed Referred": 19,
+          "In Progress": 111,
+          "New": 69,
+          "Duplicate": 8
+        },
+        "avg_response_hours": 163.32801668562752
+      },
+      "Running Water": {
+        "total": 61,
+        "status_counts": {
+          "Closed Referred": 26,
+          "Closed": 23,
+          "In Progress": 4,
+          "New": 7,
+          "Duplicate": 1
+        },
+        "avg_response_hours": 74.16387188208617
+      },
+      "Vegetation": {
+        "total": 222,
+        "status_counts": {
+          "Closed": 140,
+          "In Progress": 28,
+          "Closed Referred": 25,
+          "New": 27,
+          "Duplicate": 2
+        },
+        "avg_response_hours": 64.64936700336698
       },
       "Sidewalk Repair": {
         "total": 352,
@@ -290,76 +320,61 @@
           "Closed Referred": 6,
           "New": 58
         },
-        "avg_response_hours": 126.2123278102665
+        "avg_response_hours": 126.21232781026647
+      },
+      "Tree Maintenance": {
+        "total": 1085,
+        "status_counts": {
+          "In Progress": 314,
+          "Closed": 485,
+          "Duplicate": 58,
+          "New": 224,
+          "Closed Referred": 4
+        },
+        "avg_response_hours": 101.94044478527609
       },
       "Dumped Items": {
         "total": 8089,
         "status_counts": {
-          "Closed": 4424,
+          "Closed": 4423,
           "In Progress": 2499,
-          "Closed Referred": 150,
           "Duplicate": 727,
+          "Closed Referred": 150,
           "Cancelled": 37,
-          "New": 252
+          "New": 253
         },
-        "avg_response_hours": 326.7539482879098
+        "avg_response_hours": 326.656535852011
       },
-      "Dead Animal Pickup": {
-        "total": 531,
+      "Abandoned Shopping Cart": {
+        "total": 114,
         "status_counts": {
-          "Closed": 529,
-          "Closed Referred": 1,
-          "New": 1
+          "Closed": 106,
+          "Closed Referred": 8
         },
-        "avg_response_hours": 7.186115828092249
+        "avg_response_hours": 58.729132553606235
       },
-      "Animal Services": {
-        "total": 260,
+      "Graffiti": {
+        "total": 2686,
         "status_counts": {
-          "Closed": 260
+          "Closed": 2196,
+          "In Progress": 229,
+          "Duplicate": 21,
+          "Closed Referred": 217,
+          "Cancelled": 2,
+          "New": 21
         },
-        "avg_response_hours": 11.028932692307688
-      },
-      "E-Scooter": {
-        "total": 2906,
-        "status_counts": {
-          "Closed Referred": 2906
-        },
-        "avg_response_hours": null
+        "avg_response_hours": 64.59627892799625
       },
       "Park Maintenance": {
         "total": 196,
         "status_counts": {
           "Closed": 148,
+          "Closed Referred": 8,
           "New": 4,
           "In Progress": 35,
-          "Closed Referred": 8,
           "Duplicate": 1
         },
-        "avg_response_hours": 174.15399572649568
-      },
-      "Graffiti": {
-        "total": 2686,
-        "status_counts": {
-          "Closed": 2197,
-          "In Progress": 228,
-          "Closed Referred": 217,
-          "Duplicate": 21,
-          "Cancelled": 2,
-          "New": 21
-        },
-        "avg_response_hours": 64.57210184418692
-      },
-      "Street Repair": {
-        "total": 481,
-        "status_counts": {
-          "In Progress": 111,
-          "Closed": 274,
-          "Closed Referred": 19,
-          "New": 69,
-          "Duplicate": 8
-        },
-        "avg_response_hours": 163.32801668562757
+        "avg_response_hours": 174.15399572649565
       },
       "Light": {
         "total": 608,
@@ -372,54 +387,62 @@
         },
         "avg_response_hours": 61.54210042060989
       },
-      "Running Water": {
-        "total": 61,
+      "Dead Animal Pickup": {
+        "total": 531,
         "status_counts": {
-          "Closed": 23,
-          "Closed Referred": 26,
-          "In Progress": 4,
-          "New": 7,
-          "Duplicate": 1
+          "Closed": 529,
+          "Closed Referred": 1,
+          "New": 1
         },
-        "avg_response_hours": 74.16387188208617
-      },
-      "Abandoned Shopping Cart": {
-        "total": 114,
-        "status_counts": {
-          "Closed": 106,
-          "Closed Referred": 8
-        },
-        "avg_response_hours": 58.729132553606235
-      },
-      "Report Food Truck Vending Concerns": {
-        "total": 152,
-        "status_counts": {
-          "Duplicate": 87,
-          "New": 61,
-          "Closed": 4
-        },
-        "avg_response_hours": 159.46194444444444
+        "avg_response_hours": 7.186115828092252
       },
       "Traffic Signal": {
         "total": 148,
         "status_counts": {
-          "In Progress": 23,
           "Closed": 121,
+          "In Progress": 23,
           "Closed Referred": 2,
           "New": 2
         },
         "avg_response_hours": 123.18112240289067
       },
-      "Vegetation": {
-        "total": 222,
+      "Trash & Debris": {
+        "total": 160,
         "status_counts": {
-          "In Progress": 28,
-          "Closed": 140,
-          "Closed Referred": 25,
-          "New": 27,
-          "Duplicate": 2
+          "New": 49,
+          "Closed": 91,
+          "Closed Referred": 9,
+          "In Progress": 5,
+          "Cancelled": 2,
+          "Duplicate": 4
         },
-        "avg_response_hours": 64.64936700336696
+        "avg_response_hours": 246.52957788671023
+      },
+      "Report Food Truck Vending Concerns": {
+        "total": 152,
+        "status_counts": {
+          "New": 61,
+          "Duplicate": 87,
+          "Closed": 4
+        },
+        "avg_response_hours": 159.46194444444444
+      },
+      "Restroom Maintenance": {
+        "total": 30,
+        "status_counts": {
+          "In Progress": 14,
+          "Closed": 14,
+          "New": 2
+        },
+        "avg_response_hours": 166.8211507936508
+      },
+      "Animal Services": {
+        "total": 261,
+        "status_counts": {
+          "Closed": 260,
+          "New": 1
+        },
+        "avg_response_hours": 11.02893269230769
       },
       "Report Illegal Firework": {
         "total": 29,
@@ -430,15 +453,14 @@
         },
         "avg_response_hours": 100.34027777777779
       },
-      "Report Business Licenses/Permit Concerns": {
-        "total": 149,
+      "Shoes on a Utility Wire": {
+        "total": 27,
         "status_counts": {
-          "Closed": 96,
-          "New": 24,
-          "Duplicate": 25,
-          "Closed Referred": 4
+          "Closed Referred": 24,
+          "Closed": 1,
+          "In Progress": 2
         },
-        "avg_response_hours": 189.36851944444447
+        "avg_response_hours": 47.488611111111105
       },
       "Marina Repair": {
         "total": 19,
@@ -459,52 +481,61 @@
           "In Progress": 2,
           "Closed Referred": 4
         },
-        "avg_response_hours": 84.30814327485379
+        "avg_response_hours": 84.3081432748538
       },
-      "Trash & Debris": {
-        "total": 160,
+      "Report Business Licenses/Permit Concerns": {
+        "total": 149,
         "status_counts": {
-          "In Progress": 5,
-          "Closed": 91,
-          "Closed Referred": 9,
-          "New": 49,
-          "Cancelled": 2,
-          "Duplicate": 4
+          "Closed": 96,
+          "New": 24,
+          "Duplicate": 25,
+          "Closed Referred": 4
         },
-        "avg_response_hours": 246.52957788671023
-      },
-      "Shoes on a Utility Wire": {
-        "total": 27,
-        "status_counts": {
-          "Closed Referred": 24,
-          "Closed": 1,
-          "In Progress": 2
-        },
-        "avg_response_hours": 47.48861111111111
-      },
-      "Restroom Maintenance": {
-        "total": 30,
-        "status_counts": {
-          "Closed": 14,
-          "In Progress": 14,
-          "New": 2
-        },
-        "avg_response_hours": 166.8211507936508
+        "avg_response_hours": 189.36851944444447
       }
     }
   },
   "Last 60 Days": {
     "types": {
-      "Tree Maintenance": {
-        "total": 786,
+      "E-Scooter": {
+        "total": 2147,
         "status_counts": {
-          "Closed": 300,
-          "In Progress": 204,
-          "Duplicate": 58,
-          "New": 223,
-          "Closed Referred": 1
+          "Closed Referred": 2147
         },
-        "avg_response_hours": 100.29941306755254
+        "avg_response_hours": null
+      },
+      "Street Repair": {
+        "total": 302,
+        "status_counts": {
+          "Closed": 145,
+          "Closed Referred": 8,
+          "In Progress": 72,
+          "New": 69,
+          "Duplicate": 8
+        },
+        "avg_response_hours": 115.85218409586061
+      },
+      "Running Water": {
+        "total": 39,
+        "status_counts": {
+          "Closed Referred": 13,
+          "Closed": 15,
+          "In Progress": 3,
+          "New": 7,
+          "Duplicate": 1
+        },
+        "avg_response_hours": 37.80154761904762
+      },
+      "Vegetation": {
+        "total": 131,
+        "status_counts": {
+          "Closed": 78,
+          "In Progress": 14,
+          "Closed Referred": 10,
+          "New": 27,
+          "Duplicate": 2
+        },
+        "avg_response_hours": 69.09549558080806
       },
       "Sidewalk Repair": {
         "total": 212,
@@ -517,84 +548,28 @@
         },
         "avg_response_hours": 75.88562734082394
       },
+      "Tree Maintenance": {
+        "total": 785,
+        "status_counts": {
+          "In Progress": 203,
+          "Closed": 300,
+          "Duplicate": 58,
+          "New": 223,
+          "Closed Referred": 1
+        },
+        "avg_response_hours": 100.29941306755255
+      },
       "Dumped Items": {
         "total": 5087,
         "status_counts": {
-          "Closed": 1919,
+          "Closed": 1918,
           "In Progress": 2132,
-          "Closed Referred": 97,
           "Duplicate": 669,
+          "Closed Referred": 97,
           "Cancelled": 22,
-          "New": 248
+          "New": 249
         },
-        "avg_response_hours": 178.32686947988236
-      },
-      "Dead Animal Pickup": {
-        "total": 358,
-        "status_counts": {
-          "Closed": 356,
-          "Closed Referred": 1,
-          "New": 1
-        },
-        "avg_response_hours": 7.912489884842838
-      },
-      "Animal Services": {
-        "total": 154,
-        "status_counts": {
-          "Closed": 154
-        },
-        "avg_response_hours": 10.976341991341993
-      },
-      "E-Scooter": {
-        "total": 2146,
-        "status_counts": {
-          "Closed Referred": 2146
-        },
-        "avg_response_hours": null
-      },
-      "Graffiti": {
-        "total": 1709,
-        "status_counts": {
-          "Closed": 1362,
-          "In Progress": 167,
-          "Closed Referred": 144,
-          "Duplicate": 15,
-          "New": 21
-        },
-        "avg_response_hours": 55.9762898406374
-      },
-      "Street Repair": {
-        "total": 302,
-        "status_counts": {
-          "In Progress": 72,
-          "Closed": 145,
-          "Closed Referred": 8,
-          "New": 69,
-          "Duplicate": 8
-        },
-        "avg_response_hours": 115.8521840958606
-      },
-      "Light": {
-        "total": 399,
-        "status_counts": {
-          "In Progress": 181,
-          "Closed": 192,
-          "Closed Referred": 8,
-          "New": 16,
-          "Duplicate": 2
-        },
-        "avg_response_hours": 40.54736111111112
-      },
-      "Running Water": {
-        "total": 39,
-        "status_counts": {
-          "Closed": 15,
-          "Closed Referred": 13,
-          "In Progress": 3,
-          "New": 7,
-          "Duplicate": 1
-        },
-        "avg_response_hours": 37.80154761904761
+        "avg_response_hours": 178.13957794687212
       },
       "Abandoned Shopping Cart": {
         "total": 70,
@@ -604,23 +579,16 @@
         },
         "avg_response_hours": 55.90550396825396
       },
-      "Report Food Truck Vending Concerns": {
-        "total": 101,
+      "Graffiti": {
+        "total": 1709,
         "status_counts": {
-          "Duplicate": 63,
-          "New": 35,
-          "Closed": 3
+          "Closed": 1361,
+          "In Progress": 168,
+          "Closed Referred": 144,
+          "Duplicate": 15,
+          "New": 21
         },
-        "avg_response_hours": 156.61777777777777
-      },
-      "Traffic Signal": {
-        "total": 99,
-        "status_counts": {
-          "In Progress": 14,
-          "Closed": 83,
-          "New": 2
-        },
-        "avg_response_hours": 120.17056559571618
+        "avg_response_hours": 56.01062661498704
       },
       "Park Maintenance": {
         "total": 121,
@@ -631,18 +599,65 @@
           "Closed Referred": 4,
           "Duplicate": 1
         },
-        "avg_response_hours": 107.38149527186755
+        "avg_response_hours": 107.38149527186756
       },
-      "Vegetation": {
-        "total": 131,
+      "Light": {
+        "total": 397,
         "status_counts": {
-          "In Progress": 14,
-          "Closed": 78,
-          "Closed Referred": 10,
-          "New": 27,
+          "In Progress": 180,
+          "Closed": 191,
+          "Closed Referred": 8,
+          "New": 16,
           "Duplicate": 2
         },
-        "avg_response_hours": 69.09549558080806
+        "avg_response_hours": 40.709475153545526
+      },
+      "Dead Animal Pickup": {
+        "total": 358,
+        "status_counts": {
+          "Closed": 356,
+          "Closed Referred": 1,
+          "New": 1
+        },
+        "avg_response_hours": 7.912489884842838
+      },
+      "Traffic Signal": {
+        "total": 99,
+        "status_counts": {
+          "Closed": 83,
+          "In Progress": 14,
+          "New": 2
+        },
+        "avg_response_hours": 120.1705655957162
+      },
+      "Report Food Truck Vending Concerns": {
+        "total": 101,
+        "status_counts": {
+          "New": 35,
+          "Duplicate": 63,
+          "Closed": 3
+        },
+        "avg_response_hours": 156.61777777777777
+      },
+      "Trash & Debris": {
+        "total": 114,
+        "status_counts": {
+          "Closed": 52,
+          "Closed Referred": 7,
+          "In Progress": 2,
+          "New": 48,
+          "Duplicate": 4,
+          "Cancelled": 1
+        },
+        "avg_response_hours": 211.49624999999997
+      },
+      "Animal Services": {
+        "total": 154,
+        "status_counts": {
+          "Closed": 153,
+          "New": 1
+        },
+        "avg_response_hours": 11.001098402323894
       },
       "Report Illegal Firework": {
         "total": 11,
@@ -652,15 +667,13 @@
         },
         "avg_response_hours": 74.97472222222223
       },
-      "Report Business Licenses/Permit Concerns": {
-        "total": 122,
+      "Shoes on a Utility Wire": {
+        "total": 17,
         "status_counts": {
-          "Closed": 69,
-          "New": 24,
-          "Duplicate": 25,
-          "Closed Referred": 4
+          "Closed Referred": 15,
+          "In Progress": 2
         },
-        "avg_response_hours": 206.22485920852353
+        "avg_response_hours": 27.006759259259262
       },
       "Marina Repair": {
         "total": 14,
@@ -683,25 +696,15 @@
         },
         "avg_response_hours": 28.267702020202012
       },
-      "Trash & Debris": {
-        "total": 114,
+      "Report Business Licenses/Permit Concerns": {
+        "total": 122,
         "status_counts": {
-          "In Progress": 2,
-          "Closed": 52,
-          "Closed Referred": 7,
-          "New": 48,
-          "Duplicate": 4,
-          "Cancelled": 1
+          "Closed": 69,
+          "New": 24,
+          "Duplicate": 25,
+          "Closed Referred": 4
         },
-        "avg_response_hours": 211.49624999999997
-      },
-      "Shoes on a Utility Wire": {
-        "total": 17,
-        "status_counts": {
-          "Closed Referred": 15,
-          "In Progress": 2
-        },
-        "avg_response_hours": 27.00675925925926
+        "avg_response_hours": 206.22485920852353
       },
       "Restroom Maintenance": {
         "total": 22,
@@ -717,9 +720,9 @@
   "Last 30 Days": {
     "types": {
       "E-Scooter": {
-        "total": 1117,
+        "total": 1118,
         "status_counts": {
-          "Closed Referred": 1117
+          "Closed Referred": 1118
         },
         "avg_response_hours": null
       },
@@ -737,14 +740,14 @@
       "Dumped Items": {
         "total": 2405,
         "status_counts": {
-          "Duplicate": 399,
-          "New": 244,
+          "Duplicate": 398,
+          "New": 245,
           "In Progress": 1024,
           "Closed": 692,
           "Cancelled": 4,
           "Closed Referred": 42
         },
-        "avg_response_hours": 78.72164558867802
+        "avg_response_hours": 78.72164558867804
       },
       "Tree Maintenance": {
         "total": 449,
@@ -785,23 +788,16 @@
         },
         "avg_response_hours": 97.76424242424243
       },
-      "Animal Services": {
-        "total": 73,
-        "status_counts": {
-          "Closed": 73
-        },
-        "avg_response_hours": 7.666765601217654
-      },
       "Graffiti": {
-        "total": 795,
+        "total": 796,
         "status_counts": {
           "Closed": 589,
           "Closed Referred": 60,
-          "In Progress": 117,
+          "In Progress": 118,
           "Duplicate": 8,
           "New": 21
         },
-        "avg_response_hours": 38.85008816983396
+        "avg_response_hours": 38.85008816983395
       },
       "Restroom Maintenance": {
         "total": 12,
@@ -829,6 +825,14 @@
           "Closed Referred": 2
         },
         "avg_response_hours": 43.40936965811966
+      },
+      "Animal Services": {
+        "total": 74,
+        "status_counts": {
+          "Closed": 73,
+          "New": 1
+        },
+        "avg_response_hours": 7.666765601217656
       },
       "Running Water": {
         "total": 21,
@@ -865,17 +869,17 @@
         "total": 69,
         "status_counts": {
           "Closed": 16,
+          "Closed Referred": 1,
           "New": 48,
-          "Duplicate": 4,
-          "Closed Referred": 1
+          "Duplicate": 4
         },
-        "avg_response_hours": 134.03251633986926
+        "avg_response_hours": 134.0325163398693
       },
       "Traffic Signal": {
         "total": 37,
         "status_counts": {
-          "Closed": 25,
           "In Progress": 10,
+          "Closed": 25,
           "New": 2
         },
         "avg_response_hours": 68.27822222222223
@@ -927,12 +931,27 @@
   },
   "Last 7 Days": {
     "types": {
-      "E-Scooter": {
-        "total": 277,
+      "Graffiti": {
+        "total": 190,
         "status_counts": {
-          "Closed Referred": 277
+          "In Progress": 62,
+          "Closed": 101,
+          "New": 19,
+          "Closed Referred": 4,
+          "Duplicate": 4
         },
-        "avg_response_hours": null
+        "avg_response_hours": 24.367854497354507
+      },
+      "Dumped Items": {
+        "total": 579,
+        "status_counts": {
+          "Duplicate": 103,
+          "In Progress": 131,
+          "New": 241,
+          "Closed": 99,
+          "Closed Referred": 5
+        },
+        "avg_response_hours": 73.63272168803417
       },
       "Tree Maintenance": {
         "total": 120,
@@ -944,47 +963,10 @@
         },
         "avg_response_hours": 19.334444444444443
       },
-      "Graffiti": {
-        "total": 189,
+      "E-Scooter": {
+        "total": 278,
         "status_counts": {
-          "New": 19,
-          "Closed": 101,
-          "In Progress": 61,
-          "Closed Referred": 4,
-          "Duplicate": 4
-        },
-        "avg_response_hours": 24.367854497354507
-      },
-      "Running Water": {
-        "total": 2,
-        "status_counts": {
-          "New": 2
-        },
-        "avg_response_hours": null
-      },
-      "Sidewalk Repair": {
-        "total": 22,
-        "status_counts": {
-          "New": 18,
-          "Duplicate": 4
-        },
-        "avg_response_hours": null
-      },
-      "Trash & Debris": {
-        "total": 19,
-        "status_counts": {
-          "New": 16,
-          "Closed Referred": 1,
-          "Closed": 1,
-          "Duplicate": 1
-        },
-        "avg_response_hours": 4.379027777777778
-      },
-      "Report Food Truck Vending Concerns": {
-        "total": 11,
-        "status_counts": {
-          "New": 3,
-          "Duplicate": 8
+          "Closed Referred": 278
         },
         "avg_response_hours": null
       },
@@ -997,32 +979,24 @@
         },
         "avg_response_hours": 10.9549577294686
       },
-      "Animal Services": {
-        "total": 17,
+      "Light": {
+        "total": 40,
         "status_counts": {
-          "Closed": 17
+          "In Progress": 10,
+          "Closed": 11,
+          "Closed Referred": 1,
+          "New": 16,
+          "Duplicate": 2
         },
-        "avg_response_hours": 6.151519607843137
+        "avg_response_hours": 7.506018518518521
       },
-      "Dumped Items": {
-        "total": 580,
+      "Report Business Licenses/Permit Concerns": {
+        "total": 6,
         "status_counts": {
-          "In Progress": 132,
-          "Duplicate": 104,
-          "New": 240,
-          "Closed": 99,
-          "Closed Referred": 5
-        },
-        "avg_response_hours": 73.63272168803417
-      },
-      "Traffic Signal": {
-        "total": 9,
-        "status_counts": {
-          "In Progress": 3,
-          "Closed": 4,
+          "Duplicate": 4,
           "New": 2
         },
-        "avg_response_hours": 8.956111111111111
+        "avg_response_hours": null
       },
       "Vegetation": {
         "total": 20,
@@ -1033,24 +1007,15 @@
         },
         "avg_response_hours": null
       },
-      "Light": {
-        "total": 40,
+      "Trash & Debris": {
+        "total": 19,
         "status_counts": {
-          "In Progress": 10,
-          "Closed": 11,
           "Closed Referred": 1,
           "New": 16,
-          "Duplicate": 2
+          "Closed": 1,
+          "Duplicate": 1
         },
-        "avg_response_hours": 7.50601851851852
-      },
-      "Report Business Licenses/Permit Concerns": {
-        "total": 6,
-        "status_counts": {
-          "Duplicate": 4,
-          "New": 2
-        },
-        "avg_response_hours": null
+        "avg_response_hours": 4.379027777777778
       },
       "Shoes on a Utility Wire": {
         "total": 3,
@@ -1076,6 +1041,46 @@
           "New": 1
         },
         "avg_response_hours": null
+      },
+      "Traffic Signal": {
+        "total": 9,
+        "status_counts": {
+          "In Progress": 3,
+          "Closed": 4,
+          "New": 2
+        },
+        "avg_response_hours": 8.956111111111111
+      },
+      "Running Water": {
+        "total": 2,
+        "status_counts": {
+          "New": 2
+        },
+        "avg_response_hours": null
+      },
+      "Sidewalk Repair": {
+        "total": 22,
+        "status_counts": {
+          "New": 18,
+          "Duplicate": 4
+        },
+        "avg_response_hours": null
+      },
+      "Report Food Truck Vending Concerns": {
+        "total": 11,
+        "status_counts": {
+          "New": 3,
+          "Duplicate": 8
+        },
+        "avg_response_hours": null
+      },
+      "Animal Services": {
+        "total": 18,
+        "status_counts": {
+          "Closed": 17,
+          "New": 1
+        },
+        "avg_response_hours": 6.151519607843137
       },
       "Street Repair": {
         "total": 31,
@@ -1121,42 +1126,35 @@
   },
   "Last 1 Days": {
     "types": {
-      "Tree Maintenance": {
-        "total": 13,
+      "E-Scooter": {
+        "total": 46,
         "status_counts": {
-          "New": 10,
-          "Duplicate": 3
+          "Closed Referred": 46
         },
         "avg_response_hours": null
       },
-      "E-Scooter": {
-        "total": 45,
+      "Dumped Items": {
+        "total": 65,
         "status_counts": {
-          "Closed Referred": 45
+          "New": 54,
+          "Duplicate": 11
         },
         "avg_response_hours": null
       },
       "Graffiti": {
-        "total": 21,
+        "total": 20,
         "status_counts": {
-          "In Progress": 16,
+          "In Progress": 15,
           "New": 4,
           "Closed": 1
         },
         "avg_response_hours": 0.030555555555555555
       },
-      "Dumped Items": {
-        "total": 65,
-        "status_counts": {
-          "New": 53,
-          "Duplicate": 12
-        },
-        "avg_response_hours": null
-      },
       "Animal Services": {
-        "total": 4,
+        "total": 5,
         "status_counts": {
-          "Closed": 4
+          "Closed": 4,
+          "New": 1
         },
         "avg_response_hours": 1.3036805555555555
       },
@@ -1165,6 +1163,14 @@
         "status_counts": {
           "New": 2,
           "Duplicate": 1
+        },
+        "avg_response_hours": null
+      },
+      "Tree Maintenance": {
+        "total": 12,
+        "status_counts": {
+          "New": 9,
+          "Duplicate": 3
         },
         "avg_response_hours": null
       },
@@ -1232,46 +1238,25 @@
   "Last 4 Hours": {
     "types": {
       "Dumped Items": {
-        "total": 2,
+        "total": 1,
         "status_counts": {
-          "New": 2
+          "New": 1
         },
         "avg_response_hours": null
       },
       "Graffiti": {
-        "total": 2,
-        "status_counts": {
-          "In Progress": 2
-        },
-        "avg_response_hours": null
-      },
-      "E-Scooter": {
         "total": 1,
         "status_counts": {
-          "Closed Referred": 1
-        },
-        "avg_response_hours": null
-      },
-      "Light": {
-        "total": 1,
-        "status_counts": {
-          "Duplicate": 1
-        },
-        "avg_response_hours": null
-      },
-      "Park Maintenance": {
-        "total": 1,
-        "status_counts": {
-          "Duplicate": 1
+          "In Progress": 1
         },
         "avg_response_hours": null
       }
     }
   },
   "source_update_times": {
-    "data_processed_at": "2026-10-25T07:00:21Z",
-    "metadata_processed_at": "2026-10-25T07:00:21Z",
-    "modified_at": "2026-10-25T07:00:21Z"
+    "data_processed_at": "2026-10-25T11:00:18Z",
+    "metadata_processed_at": "2026-10-25T11:00:19Z",
+    "modified_at": "2026-10-25T11:00:18Z"
   },
-  "downloaded_at": "2026-10-25T08:19:00Z"
+  "downloaded_at": "2026-10-25T12:31:00Z"
 }

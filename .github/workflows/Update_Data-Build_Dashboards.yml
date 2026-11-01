@@ -97,7 +97,14 @@ jobs:
         run: |
           python LLM_inference.py
 
-      # 5) Generate dashboards & charts
+      # 4b) Index the archive for the archive page and the dashboards' calendars.
+      # Small JSON files under data/archive/index/ (staged with data/archive/).
+      # A failure here must not stop the dashboards from publishing.
+      - name: Build archive index
+        continue-on-error: true
+        run: python build_archive_index.py
+
+      # 5) Generate dashboards & charts (+ data/dashboard/archive.html)
       - name: Generate dashboards and charts
         run: python generate_dashboard.py
 

@@ -5,6 +5,8 @@ from datetime import datetime
 import pytz
 from generate_charts import create_and_enhance_chart
 import re
+from site_common import BANNER_HTML, SUPPORT_HTML
+from archive_ui import ARCHIVE_CSS, render_calendar_html, write_archive_page
 
 # -------------------- CONFIGURATION --------------------
 DATA_URL = "https://longbeach.opendatasoft.com/explore/dataset/service-requests/information/"
@@ -32,6 +34,119 @@ STATUS_TEXT_FILES = {
     "90days":  Path("data/current_90_day_text_status.txt"),
 }
 # -------------------------------------------------------
+
+# Status table geometry: fixed row heights so the figure can be sized to fit its rows exactly
+# (the old estimate of 35 px/row + 150 left a large blank band under the table).
+TABLE_HEADER_PX = 28
+TABLE_ROW_PX = 22
+TABLE_MARGIN_PX = 40 + 10 + 16  # title/top margin + bottom margin + slack for a wrapped row
+
+
+def table_height_px(rows: int) -> int:
+    return max(160, TABLE_MARGIN_PX + TABLE_HEADER_PX + rows * TABLE_ROW_PX)
+
+
+# Shared page styles (also used by the archive page).
+BASE_CSS = """
+    body {
+      background-color: #0054ad;
+      color: white;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: white;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .status-box {
+      background-color: #003c82;
+      border-left: 5px solid #ffffff;
+      padding: 15px 20px;
+      margin: 20px auto;
+      max-width: 850px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      font-size: 1.05em;
+      line-height: 1.5em;
+      white-space: pre-wrap;
+    }
+    .status-title {
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-bottom: 8px;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    a {
+      color: #ffffff;
+      text-decoration: none;
+    }
+    .banner {
+      width: 100%;
+      max-width: 900px;
+      display: block;
+      margin: 0 auto 10px auto;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+    }
+    .banner-link {
+      display: block;
+      width: fit-content;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .banner-link:focus-visible {
+      outline: 3px solid #FFD140;
+      outline-offset: 4px;
+      border-radius: 12px;
+    }
+    .nav-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin: 20px 0 30px 0;
+    }
+    .nav-btn {
+      background-color: white;
+      color: #0054ad;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      transition: 0.3s;
+      border: 2px solid white;
+    }
+    .nav-btn:hover {
+      background-color: #d9eaff;
+    }
+    .nav-btn-active {
+      background-color: #003c82;
+      color: white;
+      font-weight: bold;
+    }
+    .source-note {
+      margin: 15px 0;
+      font-size: 0.9em;
+      text-align: center;
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #e0e0e0;
+      border-top: 1px solid #ffffff44;
+      padding-top: 10px;
+      text-align: center;
+    }
+    .privacy-note {
+      font-size: 0.8em;
+      color: #cccccc;
+      margin-top: 8px;
+      line-height: 1.4em;
+    }
+"""
 
 
 def normalize_status(status: str) -> str:
@@ -189,8 +304,8 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str, ge
         fig2 = go.Figure(
             data=[
                 go.Table(
-                    header=dict(values=header_vals, fill_color="#003c82", font=dict(color="white", size=13), align="left"),
-                    cells=dict(values=cell_vals, fill_color=[["#004b9b" if i % 2 == 0 else "#0054ad" for i in range(len(service_types))]], font=dict(color="white", size=12), align="left"),
+                    header=dict(values=header_vals, fill_color="#003c82", font=dict(color="white", size=13), align="left", height=TABLE_HEADER_PX),
+                    cells=dict(values=cell_vals, fill_color=[["#004b9b" if i % 2 == 0 else "#0054ad" for i in range(len(service_types))]], font=dict(color="white", size=12), align="left", height=TABLE_ROW_PX),
                 )
             ]
         )
@@ -200,7 +315,8 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str, ge
             paper_bgcolor="#0054ad",
             font=dict(color="white"),
             margin=dict(l=30, r=30, t=40, b=10),
-            height=max(400, len(service_types) * 35 + 150),
+            # Size the figure to the rows actually drawn (fixed row heights), so no blank band is left below.
+            height=table_height_px(len(service_types)),
         )
         plot2_html = fig2.to_html(full_html=False, include_plotlyjs=False)
     else:
@@ -217,6 +333,7 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str, ge
         nav_html_parts.append(f'<a href="index_{p_label}.html" class="{active_class}">{btn_text}</a>')
 
     # ✅ INSERTED ABOUT LINK
+    nav_html_parts.append('<a href="archive.html?w=' + period_label + '" class="nav-btn">Archive</a>')
     nav_html_parts.append('<a href="about.html" class="nav-btn">About</a>')
 
     nav_html_parts.append("</div>")
@@ -231,99 +348,15 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str, ge
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hustle Long Beach Dashboard — {PERIODS[period_label]} View</title>
   <style>
-    body {{
-      background-color: #0054ad;
-      color: white;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-    }}
-    h1 {{
-      text-align: center;
-      color: white;
-      margin-top: 10px;
-      margin-bottom: 10px;
-    }}
-    .status-box {{
-      background-color: #003c82;
-      border-left: 5px solid #ffffff;
-      padding: 15px 20px;
-      margin: 20px auto;
-      max-width: 850px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      font-size: 1.05em;
-      line-height: 1.5em;
-      white-space: pre-wrap;
-    }}
-    .status-title {{
-      font-weight: bold;
-      font-size: 1.2em;
-      margin-bottom: 8px;
-      text-align: center;
-      text-transform: uppercase;
-    }}
-    a {{
-      color: #ffffff;
-      text-decoration: none;
-    }}
-    .banner {{
-      width: 100%;
-      max-width: 900px;
-      display: block;
-      margin: 0 auto 10px auto;
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.4);
-    }}
-    .nav-buttons {{
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
-      margin: 20px 0 30px 0;
-    }}
-    .nav-btn {{
-      background-color: white;
-      color: #0054ad;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-weight: 600;
-      transition: 0.3s;
-      border: 2px solid white;
-    }}
-    .nav-btn:hover {{
-      background-color: #d9eaff;
-    }}
-    .nav-btn-active {{
-      background-color: #003c82;
-      color: white;
-      font-weight: bold;
-    }}
-    .source-note {{
-      margin: 15px 0;
-      font-size: 0.9em;
-      text-align: center;
-    }}
-    .footer {{
-      margin-top: 20px;
-      font-size: 0.9em;
-      color: #e0e0e0;
-      border-top: 1px solid #ffffff44;
-      padding-top: 10px;
-      text-align: center;
-    }}
-    .privacy-note {{
-      font-size: 0.8em;
-      color: #cccccc;
-      margin-top: 8px;
-      line-height: 1.4em;
-    }}
+{BASE_CSS}
+{ARCHIVE_CSS}
   </style>
 </head>
 <body>
-  <img src="{BANNER_PATH}" alt="Hustle Long Beach Banner" class="banner">
+  {BANNER_HTML}
   <h1>City Service Dashboard — {PERIODS[period_label]} View</h1>
 
   <div class="status-box">
@@ -342,24 +375,12 @@ def build_dashboard(period_label: str, dataset: dict, downloaded_at_str: str, ge
         f.write(plot1_html)
         f.write("<br>\n")
         f.write(plot2_html)
+        try:  # the archive calendar is extra; never let it stop the live dashboard from publishing
+            f.write(render_calendar_html(datetime.now(pytz.timezone("America/Los_Angeles")).date(), period_label))
+        except Exception as e:
+            print(f"⚠️ Archive calendar skipped for {period_label}: {e}")
         f.write(f"""
-  <div style="text-align:center; margin:40px auto 20px auto; max-width:800px;">
-    <h2 style="font-size:1.1em; font-weight:600; margin-bottom:0.75rem;">
-      Support the continued development and maintenance of the Hustle Long Beach! project.<br>
-      Any amount is appreciated and no PayPal account is required.
-    </h2>
-    <div>
-      <style>.pp-JYJDUKNCD4324{{text-align:center;border:none;border-radius:0.25rem;min-width:11.625rem;padding:0 2rem;height:2.625rem;font-weight:bold;background-color:#FFD140;color:#000000;font-family:"Helvetica Neue",Arial,sans-serif;font-size:1rem;line-height:1.25rem;cursor:pointer;}}</style>
-      <form action="https://www.paypal.com/ncp/payment/JYJDUKNCD4324" method="post" target="_blank" style="display:inline-grid;justify-items:center;align-content:start;gap:0.5rem;">
-        <input class="pp-JYJDUKNCD4324" type="submit" value="Buy Now" />
-        <img src="https://www.paypalobjects.com/images/Debit_Credit.svg" alt="cards" />
-        <section style="font-size:0.75rem;">
-          Powered by <img src="https://www.paypalobjects.com/paypal-ui/logos/svg/paypal-wordmark-color.svg" alt="paypal" style="height:0.875rem;vertical-align:middle;"/>
-        </section>
-      </form>
-    </div>
-  </div>
-
+{SUPPORT_HTML}
   <div class="footer">
     <p>Disclaimer: This dashboard is generated automatically from Long Beach’s public service request dataset via the Go Long Beach app. Accuracy depends on city data quality and parsing reliability.</p>
     <p>Project Source: <a href="{GITHUB_LINK}" target="_blank">HustleYourCity on GitHub</a></p>
@@ -391,6 +412,11 @@ def main():
             print(f"⚠️ Missing data for {PERIODS[period]}, skipping")
             continue
         build_dashboard(period, dataset, formatted_timestamp, generated_timestamp)
+
+    try:
+        print(f"✅ Archive page: {write_archive_page(BASE_CSS).resolve()}")
+    except Exception as e:
+        print(f"⚠️ Archive page not written: {e}")
 
 
 if __name__ == "__main__":

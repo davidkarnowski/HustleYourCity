@@ -2,9 +2,9 @@
 
 Operational guide for AI assistants working in this repository. Keep this file lean — link out to the deep evaluation doc for narrative.
 
-> **Companion document:** the long-form architecture review, gap analysis, and MVP roadmap lives at
-> `/Users/dk/Projects/Hustle_Long_Beach/Docs/HustleYourCity-Claude_Eval.md`.
-> Read it before proposing structural changes.
+> **Companion document:** a long-form architecture review, gap analysis and roadmap is kept in the
+> maintainer's private project notes (outside this repository). Ask the maintainer before proposing
+> structural changes.
 
 ---
 
@@ -35,9 +35,13 @@ City of Long Beach Open Data API  (Opendatasoft / Huwise v2.1)
   data/current_{4_hour|24_hour|7_day|30_day|90_day}_text_status.txt
             │
             ▼
+  build_archive_index.py  ──►  data/archive/index/<YYYY-MM>.json + months.json
+            │                   (pairs each archived run's JSON with its 5 texts; Pacific-date keyed)
+            ▼
   generate_dashboard.py  ──►  data/dashboard/index_{4hours|24hours|7days|30days|90days}.html
        │  (calls generate_charts.py for PNG branding overlay)
-       └─►  data/charts/average_response_<period>.png
+       ├─►  data/charts/average_response_<period>.png
+       └─►  data/dashboard/archive.html  (static archive viewer; renders past runs in the browser)
             │
             ▼
   generate_about_page.py  ──►  data/dashboard/about.html  (rendered from README.md)
@@ -60,7 +64,10 @@ City of Long Beach Open Data API  (Opendatasoft / Huwise v2.1)
 | `full_exporter.py` | Streams the full dataset via `/exports/json`, gzips it, writes to `data/`. |
 | `type_status_response_summary.py` | Parses latest export, builds per-type aggregates across 7 time windows, atomic-writes `summary_results_current.json` and an archive copy. Also fetches dataset metadata (`data_processed_at`, etc.) via the Opendatasoft catalog endpoint. |
 | `LLM_inference.py` | Calls Gemini API for each timeframe (4h / 24h / 7d / 30d / 90d). Reads `GOOGLE_AI_STUDIO_API_KEY` from env. Has retry/backoff. |
-| `generate_dashboard.py` | Builds five HTML dashboards with embedded Plotly charts + a status-breakdown table. Loads LLM text from local files. Triggers PNG generation. |
+| `generate_dashboard.py` | Builds five HTML dashboards with embedded Plotly charts + a status-breakdown table and the Past Days & Periods calendar. Loads LLM text from local files. Triggers PNG generation. Writes `archive.html`. |
+| `build_archive_index.py` | Indexes `data/archive/` into `data/archive/index/` for the archive page and calendars. Incremental; backfills itself when no index exists. Tests in `tests/`. |
+| `archive_ui.py` | The calendar (server-rendered, no JS) and the static archive page (`archive.html`, browser-rendered from archived files). |
+| `site_common.py` | Banner link, PayPal support block and privacy note shared by every page. |
 | `generate_charts.py` | Matplotlib bar chart + Pillow header/footer compositing → branded PNG. Loads DejaVuSans bundled with matplotlib for cross-platform fonts. |
 | `generate_about_page.py` | Converts `README.md` → `data/dashboard/about.html`. |
 | `trigger_make_webhook.py` | Posts a small JSON payload to a Make.com webhook URL using `MAKE_WEBHOOK_URL` + `MAKE_WEBHOOK_KEY` env vars. |
@@ -95,14 +102,17 @@ python3 type_status_response_summary.py
 export GOOGLE_AI_STUDIO_API_KEY=...
 python3 LLM_inference.py
 
-# 4. Render dashboards + charts
+# 4. Index the archive, then render dashboards + charts (+ archive.html)
+python3 build_archive_index.py
 python3 generate_dashboard.py
 python3 generate_about_page.py
 ```
 
 Open `data/dashboard/index_24hours.html` in a browser to preview.
 
-There are **no tests, no linter config, no pre-commit hooks, no formatter**. Adding any of those is a meaningful improvement, not a routine task.
+Tests: `python -m pytest tests` (archive indexer). There is no linter config, pre-commit hook or formatter yet.
+
+Preview the archive page over HTTP (it fetches files, so `file://` won't work): `python3 -m http.server` from the repo root, then open `/data/dashboard/archive.html`.
 
 ---
 
@@ -125,11 +135,11 @@ Secrets are read from GitHub Actions repo secrets in CI.
 - **`summary_results_current.json` is the single source of truth** consumed by both `LLM_inference.py` and `generate_dashboard.py`. Do not bypass it.
 - **Status normalization** lives in `generate_dashboard.normalize_status()` — `Duplicate` is dropped from the dashboard tables. The summary JSON keeps duplicates.
 - **Atomic writes** for the summary JSON are intentional (`write_json_atomically`). Don't replace with a plain `open(..., "w")` — concurrent reads from the dashboard generator could otherwise see a partial file.
-- **`fetch-depth: 0`** is set in every workflow. The repo's `.git` is already multi-GB (see eval doc §6.1) — adding any history-rewriting operation must be planned carefully.
-- **No `.gitignore`** exists. `__pycache__/` ends up untracked but is not ignored. Add one before doing any cleanup work.
+- **`fetch-depth: 1`** (shallow checkout) is used by the pipeline. History was rewritten once (2026-10-07) to drop raw exports; any further history-rewriting operation must be planned carefully.
 - **The repo IS the database.** Every 4 hours an archived JSON, an updated summary JSON, and (eventually) raw exports get committed. Pruning happens only on the working tree — git history retains everything forever. Plan accordingly before adding new artifact types.
 - **Do not commit raw exports beyond the 7-day window** — the workflow's prune step deletes from disk only; if you stage them by accident they live in history forever.
 - **Hardcoded brand colors** (`#0054ad` body, `#003c82` accent, white text) are duplicated across `generate_dashboard.py` and `generate_about_page.py`. Match them when editing either.
+- **Archived files are an API.** `archive.html` and `build_archive_index.py` read `data/archive/YYYY/MM/summary_json_*.json` and `summary_<4_hour|24_hour|7_day|30_day|90_day>_*.txt` by name (UTC run-clock timestamps). Don't rename or move them; an archived view must keep its "ARCHIVE" notice and code-generated window statement.
 - **The dashboard's "Privacy & Transparency" footer claims no cookies.** The PayPal embed loads PayPal-controlled assets; if you add analytics, telemetry, or third-party scripts, update that footer in both files.
 
 ---
@@ -151,5 +161,3 @@ Secrets are read from GitHub Actions repo secrets in CI.
 - Gemini API docs: <https://ai.google.dev/gemini-api/docs/>
 - DeepWiki for this repo: <https://deepwiki.com/davidkarnowski/HustleYourCity>
 - Live site: <https://hustlelongbeach.com>
-- Companion evaluation: `/Users/dk/Projects/Hustle_Long_Beach/Docs/HustleYourCity-Claude_Eval.md`
-- External research dump: `/Users/dk/Projects/Hustle_Long_Beach/Research/`

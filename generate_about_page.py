@@ -109,7 +109,7 @@ html = f"""<!DOCTYPE html>
 </head>
 <body>
 
-  <img src="Hustle_Long_Beach_Banner.png" alt="Hustle Long Beach Banner" class="banner">
+  <a href="/" class="banner-link" aria-label="Hustle Long Beach home" style="display:block;width:fit-content;max-width:900px;margin:0 auto;"><img src="Hustle_Long_Beach_Banner.png" alt="Hustle Long Beach Banner" class="banner"></a>
 
   <a href="index_24hours.html" class="back-link">← Back to Current Dashboards</a>
 

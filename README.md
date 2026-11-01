@@ -24,6 +24,28 @@ Explore the latest city service response time dashboards by time period (updated
 - [7-Day Dashboard](https://HustleLongBeach.com/data/dashboard/index_7days.html)  
 - [30-Day Dashboard](https://HustleLongBeach.com/data/dashboard/index_30days.html)  
 - [90-Day Dashboard](https://HustleLongBeach.com/data/dashboard/index_90days.html)
+- [Archive: past days and periods](https://HustleLongBeach.com/data/dashboard/archive.html)
+
+Every dashboard ends with a **Past Days & Periods** calendar, and the **Archive** button opens the full archive (details in the next section).
+
+---
+
+## Archive of Past Days and Periods
+
+Every four-hour update is kept, so you can look back at what the dashboards showed on any past day.
+
+- **Pick a day** on the calendar at the bottom of any dashboard, or open the [archive page](https://HustleLongBeach.com/data/dashboard/archive.html) and move between months.
+- **Pick a window:** 4 Hours, 1 Day, 7 Days, 30 Days or 90 Days. A window is the stretch of time *ending* at the chosen update, so "7 Days" on October 15 shows the week that ended on October 15. The calendar shades the days the window covers.
+- **Pick an update time:** each day usually has six updates. The last update of the day is shown by default; the buttons under the calendar select the others.
+- **Share a view:** the address bar holds the day, window and update time, so a link reopens the same view.
+
+**Every archived view is labelled as archived.** A yellow **ARCHIVE** notice sits at the top, and a window statement gives the window's start and end in Pacific time (PST/PDT), when the City last published its data, and when this site downloaded it. Titles and chart headings name the window, for example "7 Days ending Thursday, October 15, 2026 (Archived)".
+
+**Archived numbers are shown as they were published.** Each view is rebuilt from the summary file and AI-written text saved by that update. Cases the City opened, closed or edited afterwards are not reflected, so an archived count or average can differ from what today's City data would give for the same window. The written summary is the AI model's text from that time, unedited; if the AI service was down at the time, the page says that an earlier summary was shown instead.
+
+**Coverage:** response-time numbers are archived from October 16, 2025 and written summaries from late November 2025. The earliest updates did not record their exact download time, so those views say the time is approximate.
+
+**How it works:** the archive is a single static page. Your browser loads a small index of past updates (`data/archive/index/`) and the saved files for the day you pick, then draws the same chart and table as the live dashboards. Nothing extra is generated per day, so the archive adds only a few kilobytes per update to the repository. Like the live charts, it needs JavaScript.
 
 ---
 
@@ -81,6 +103,12 @@ Generates HTML-based dashboards for each of the five data time periods included 
 - A date-time stamp for when the data was collected for display
 - Support link to a PayPal payment page (to support development and maintenance)
 - GitHub project reference link (to this repo page)
+- A **Past Days & Periods** calendar linking each archived day to the archive page
+- The archive page itself (`data/dashboard/archive.html`), written from the shared styles in `archive_ui.py` and `site_common.py`
+
+---
+### `build_archive_index.py`
+Indexes the archive after each update: it pairs every archived summary file with the AI-written texts from the same run and writes one index file per month (`data/archive/index/YYYY-MM.json`, keyed by Pacific date) plus `months.json`, which drives the calendars. It only rewrites files that changed, and on its first run it indexes the whole archive.
 
 ---
 ### `generate_charts.py`
@@ -98,7 +126,7 @@ The project is designed to run automatically in the cloud using **GitHub Actions
 
 **Workflow:**
 - Triggered every 4 hours, approximately ten minutes after each dataset update by the City of Long Beach (Pacific Time)
-- Runs the exporter, parser, LLM inference routine and dashboard and chart generators
+- Runs the exporter, parser, LLM inference routine, archive indexer and dashboard and chart generators
 - Commits each summary, chart and dashboard to the repository for historical tracking (raw exports are not committed)
 
 **Example GitHub Actions Schedule (UTC):**
@@ -200,6 +228,7 @@ While the calculations are accurate to the timestamps and data provided, users s
 | Data | Where it lives | How long |
 |---|---|---|
 | Summaries (`data/archive/`, `data/summary_results_current.json`), LLM status text, dashboards and charts | Committed to this repository on every run | Full history, kept indefinitely |
+| Archive index (`data/archive/index/`) | Rewritten when an update adds a run (a few KB) | Rebuilt from the archive, kept with it |
 | Raw City exports (`service_requests_full_*.json.gz`) | Never committed. One export per ISO week is saved as an asset on a draft release (visible to maintainers only) | 12 weeks, then pruned automatically |
 
 Every run downloads the City's **complete** dataset (every service request back to 2020), so the newest export always contains every record. The weekly copies guard against the source data being edited or withdrawn; they are not needed to rebuild the summaries.

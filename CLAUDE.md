@@ -131,6 +131,7 @@ Secrets are read from GitHub Actions repo secrets in CI.
 
 ## Conventions and gotchas
 
+- **Only the scheduled publishing run calls the City's API.** It downloads the full dataset every four hours; that is the project's whole footprint on the City's servers. Checks (`pipeline-check.yml`), previews and development work use what is already here: `data/summary_results_current.json`, `data/archive/`, or the weekly raw snapshot on the `raw-snapshots-weekly` draft release (`gh release download`). Don't add a City download to any check, test or deploy step. A one-off audit that needs fresh City data downloads once, keeps the file out of the repo and deletes it afterwards.
 - **All timestamps in stored data are UTC (Zulu).** Display logic in `generate_dashboard.py` and the LLM prompt converts to America/Los_Angeles for users.
 - **`summary_results_current.json` is the single source of truth** consumed by both `LLM_inference.py` and `generate_dashboard.py`. Do not bypass it.
 - **Status normalization** lives in `generate_dashboard.normalize_status()` — `Duplicate` is dropped from the dashboard tables. The summary JSON keeps duplicates.

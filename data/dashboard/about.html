@@ -78,7 +78,7 @@
 </head>
 <body>
 
-  <img src="Hustle_Long_Beach_Banner.png" alt="Hustle Long Beach Banner" class="banner">
+  <a href="/" class="banner-link" aria-label="Hustle Long Beach home" style="display:block;width:fit-content;max-width:900px;margin:0 auto;"><img src="Hustle_Long_Beach_Banner.png" alt="Hustle Long Beach Banner" class="banner"></a>
 
   <a href="index_24hours.html" class="back-link">← Back to Current Dashboards</a>
 
@@ -100,7 +100,22 @@
 <li><a href="https://HustleLongBeach.com/data/dashboard/index_7days.html">7-Day Dashboard</a>  </li>
 <li><a href="https://HustleLongBeach.com/data/dashboard/index_30days.html">30-Day Dashboard</a>  </li>
 <li><a href="https://HustleLongBeach.com/data/dashboard/index_90days.html">90-Day Dashboard</a></li>
+<li><a href="https://HustleLongBeach.com/data/dashboard/archive.html">Archive: past days and periods</a></li>
 </ul>
+<p>Every dashboard ends with a <strong>Past Days &amp; Periods</strong> calendar, and the <strong>Archive</strong> button opens the full archive (details in the next section).</p>
+<hr />
+<h2>Archive of Past Days and Periods</h2>
+<p>Every four-hour update is kept, so you can look back at what the dashboards showed on any past day.</p>
+<ul>
+<li><strong>Pick a day</strong> on the calendar at the bottom of any dashboard, or open the <a href="https://HustleLongBeach.com/data/dashboard/archive.html">archive page</a> and move between months.</li>
+<li><strong>Pick a window:</strong> 4 Hours, 1 Day, 7 Days, 30 Days or 90 Days. A window is the stretch of time <em>ending</em> at the chosen update, so "7 Days" on October 15 shows the week that ended on October 15. The calendar shades the days the window covers.</li>
+<li><strong>Pick an update time:</strong> each day usually has six updates. The last update of the day is shown by default; the buttons under the calendar select the others.</li>
+<li><strong>Share a view:</strong> the address bar holds the day, window and update time, so a link reopens the same view.</li>
+</ul>
+<p><strong>Every archived view is labelled as archived.</strong> A yellow <strong>ARCHIVE</strong> notice sits at the top, and a window statement gives the window's start and end in Pacific time (PST/PDT), when the City last published its data, and when this site downloaded it. Titles and chart headings name the window, for example "7 Days ending Thursday, October 15, 2026 (Archived)".</p>
+<p><strong>Archived numbers are shown as they were published.</strong> Each view is rebuilt from the summary file and AI-written text saved by that update. Cases the City opened, closed or edited afterwards are not reflected, so an archived count or average can differ from what today's City data would give for the same window. The written summary is the AI model's text from that time, unedited; if the AI service was down at the time, the page says that an earlier summary was shown instead.</p>
+<p><strong>Coverage:</strong> response-time numbers are archived from October 16, 2025 and written summaries from late November 2025. The earliest updates did not record their exact download time, so those views say the time is approximate.</p>
+<p><strong>How it works:</strong> the archive is a single static page. Your browser loads a small index of past updates (<code>data/archive/index/</code>) and the saved files for the day you pick, then draws the same chart and table as the live dashboards. Nothing extra is generated per day, so the archive adds only a few kilobytes per update to the repository. Like the live charts, it needs JavaScript.</p>
 <hr />
 <h2>Data Source</h2>
 <ul>
@@ -149,7 +164,12 @@ Each export is saved as a timestamped file in the <code>data/</code> directory (
 - Table of service call counts and statuses
 - A date-time stamp for when the data was collected for display
 - Support link to a PayPal payment page (to support development and maintenance)
-- GitHub project reference link (to this repo page)</p>
+- GitHub project reference link (to this repo page)
+- A <strong>Past Days &amp; Periods</strong> calendar linking each archived day to the archive page
+- The archive page itself (<code>data/dashboard/archive.html</code>), written from the shared styles in <code>archive_ui.py</code> and <code>site_common.py</code></p>
+<hr />
+<h3><code>build_archive_index.py</code></h3>
+<p>Indexes the archive after each update: it pairs every archived summary file with the AI-written texts from the same run and writes one index file per month (<code>data/archive/index/YYYY-MM.json</code>, keyed by Pacific date) plus <code>months.json</code>, which drives the calendars. It only rewrites files that changed, and on its first run it indexes the whole archive.</p>
 <hr />
 <h3><code>generate_charts.py</code></h3>
 <p>Called as an external module during runtime and generates PNG images of charts which include:
@@ -162,7 +182,7 @@ Each export is saved as a timestamped file in the <code>data/</code> directory (
 <p>The project is designed to run automatically in the cloud using <strong>GitHub Actions</strong> — no full VM or paid hosting required.</p>
 <p><strong>Workflow:</strong>
 - Triggered every 4 hours, approximately ten minutes after each dataset update by the City of Long Beach (Pacific Time)
-- Runs the exporter, parser, LLM inference routine and dashboard and chart generators
+- Runs the exporter, parser, LLM inference routine, archive indexer and dashboard and chart generators
 - Commits each summary, chart and dashboard to the repository for historical tracking (raw exports are not committed)</p>
 <p><strong>Example GitHub Actions Schedule (UTC):</strong></p>
 <pre><code class="language-yaml">on:
@@ -254,6 +274,11 @@ Each export is saved as a timestamped file in the <code>data/</code> directory (
 <td>Full history, kept indefinitely</td>
 </tr>
 <tr>
+<td>Archive index (<code>data/archive/index/</code>)</td>
+<td>Rewritten when an update adds a run (a few KB)</td>
+<td>Rebuilt from the archive, kept with it</td>
+</tr>
+<tr>
 <td>Raw City exports (<code>service_requests_full_*.json.gz</code>)</td>
 <td>Never committed. One export per ISO week is saved as an asset on a draft release (visible to maintainers only)</td>
 <td>12 weeks, then pruned automatically</td>
@@ -302,7 +327,7 @@ Python Software Foundation License.</p>
   </div>
 
   <p style="text-align:center; margin:20px 0; font-size:0.9em;">
-    Documentation generated on November 01, 2026 at 06:15:02 AM PST
+    Documentation generated on November 01, 2026 at 09:08:35 AM PST
   </p>
 
   <div style="text-align:center; margin:40px auto 20px auto; max-width:800px;">

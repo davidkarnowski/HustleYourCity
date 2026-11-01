@@ -1,10 +1,15 @@
 name: Pipeline Check (no commit)
 
 # Verifies the data pipeline on the production runner image (ubuntu-26.04) without writing to the
-# repo: the push/retry logic against local throwaway repos, then a full
-# export → summary → dashboards → about-page run that discards its output.
-# The LLM step is skipped (it is provider calls, not runner-dependent) and the
-# dashboards render from the current_*.txt already in the tree.
+# repo: the push/retry logic against local throwaway repos, then an archive index → dashboards →
+# about-page run from the data already in the tree, discarding its output.
+#
+# It never calls the City of Long Beach API. The scheduled publishing run is the only thing that
+# downloads the City's dataset (every four hours); checks and development use the committed
+# summary JSON, the archive, or the weekly raw snapshot on the draft release. The export and parse
+# scripts are still compiled and imported by the python-versions job.
+# The LLM step is skipped (provider calls, not runner-dependent); the dashboards render from the
+# summary JSON and current_*.txt already in the tree.
 
 on:
   push:
@@ -59,12 +64,6 @@ jobs:
           pip install -r requirements.txt
           pip freeze
 
-      - name: Export raw data
-        run: python full_exporter.py
-
-      - name: Parse summary
-        run: python type_status_response_summary.py
-
       - name: Build archive index
         run: python build_archive_index.py
 
@@ -76,7 +75,6 @@ jobs:
 
       - name: What a real run would commit
         run: |
-          rm -f data/service_requests_full_*.json data/service_requests_full_*.json.gz
           {
             echo "### ${{ matrix.os }} / Python $(python --version | cut -d' ' -f2)"
             echo '```'

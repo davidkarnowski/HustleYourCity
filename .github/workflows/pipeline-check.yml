@@ -65,6 +65,9 @@ jobs:
       - name: Parse summary
         run: python type_status_response_summary.py
 
+      - name: Build archive index
+        run: python build_archive_index.py
+
       - name: Generate dashboards and charts
         run: python generate_dashboard.py
 

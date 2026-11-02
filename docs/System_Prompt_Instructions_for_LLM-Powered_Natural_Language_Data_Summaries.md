@@ -19,7 +19,9 @@ Through the use of a base prompt, which gives the general instruction for the st
 > - Separate paragraphs with a single blank line.
 > - Output only the final post text, no metadata, no labels, and no code block formatting.
 > 
-> Your very last line should always include the date-time stamp of the JSON ""downloaded_at"" field. This will let users know when this summary was produced. Because this value will be zulu(utc), convert it to current Los Angeles time (PST/PDT). Use the format "This data summary was updated at <insert "downloaded_at" value>.
+> Do not write any date, time or time stamp line, and do not convert the JSON's UTC timestamps. A closing line with the update time and the City's publish time, in Pacific time, is added automatically after your text.
+
+*The closing line ("This data summary was updated at … and is based on data published by the City of Long Beach at …") is added by the pipeline (`llm/timestamps.py`), which converts the UTC timestamps to Pacific time with the correct PST/PDT offset. Since 2026-11-02 the model no longer writes or converts it.*
 
 
 ## **4-Hour Summary |**

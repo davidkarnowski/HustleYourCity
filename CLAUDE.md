@@ -108,7 +108,7 @@ python3 generate_about_page.py
 
 Open `data/dashboard/index_24hours.html` in a browser to preview.
 
-Tests: `python -m pytest tests` (archive indexer). There is no linter config, pre-commit hook or formatter yet.
+Tests: `python -m pytest tests` (archive indexer, summary timestamps). There is no linter config, pre-commit hook or formatter yet.
 
 Preview the archive page over HTTP (it fetches files, so `file://` won't work): `python3 -m http.server` from the repo root, then open `/data/dashboard/archive.html`.
 
@@ -129,7 +129,7 @@ Secrets are read from GitHub Actions repo secrets in CI.
 ## Conventions and gotchas
 
 - **Only the scheduled publishing run calls the City's API.** It downloads the full dataset every four hours; that is the project's whole footprint on the City's servers. Checks (`pipeline-check.yml`), previews and development work use what is already here: `data/summary_results_current.json`, `data/archive/`, or the weekly raw snapshot on the `raw-snapshots-weekly` draft release (`gh release download`). Don't add a City download to any check, test or deploy step. A one-off audit that needs fresh City data downloads once, keeps the file out of the repo and deletes it afterwards.
-- **All timestamps in stored data are UTC (Zulu).** Display logic in `generate_dashboard.py` and the LLM prompt converts to America/Los_Angeles for users.
+- **All timestamps in stored data are UTC (Zulu).** Code converts them to America/Los_Angeles for users: `generate_dashboard.py` for the page footer, `llm/timestamps.py` for the summary's closing line (appended by `llm/runner.py`, replacing anything the model writes). Never ask the model to convert times; it got the PST/PDT offset wrong after DST ended on 2026-11-01.
 - **`summary_results_current.json` is the single source of truth** consumed by both `LLM_inference.py` and `generate_dashboard.py`. Do not bypass it.
 - **Status normalization** lives in `generate_dashboard.normalize_status()` — `Duplicate` is dropped from the dashboard tables. The summary JSON keeps duplicates.
 - **Atomic writes** for the summary JSON are intentional (`write_json_atomically`). Don't replace with a plain `open(..., "w")` — concurrent reads from the dashboard generator could otherwise see a partial file.

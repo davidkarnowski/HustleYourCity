@@ -209,7 +209,9 @@ While the calculations are accurate to the timestamps and data provided, users s
 
 ### How the summaries are written
 
-The pipeline sends each time window's numbers (the summary JSON) to a large language model with a fixed system prompt and asks for a short, factual, plain-language update for Long Beach residents. The model is told that the project is independent of the City, to back every statement with the data, to express long response times in days or weeks and short ones in minutes, to encourage residents to report issues through the Go Long Beach app, and to end with the time the data was downloaded and when the City published it.
+The pipeline sends each time window's numbers (the summary JSON) to a large language model with a fixed system prompt and asks for a short, factual, plain-language update for Long Beach residents. The model is told that the project is independent of the City, to back every statement with the data, to express long response times in days or weeks and short ones in minutes, and to encourage residents to report issues through the Go Long Beach app.
+
+Every summary ends with a line giving the time the data was downloaded and when the City published it. That line is written by the pipeline, not the model: it converts the stored UTC times to Pacific time with the correct PST/PDT offset (`llm/timestamps.py`), so the times stay right through daylight-saving changes.
 
 The prompt asks for plain text only (no emoji, markdown or special characters). That rule dates from when the summaries were also posted to social media, and it is kept because the dashboards show the text as written.
 

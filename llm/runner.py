@@ -5,7 +5,7 @@ Default chain (per Eval doc Decision Log D-05, 2026-04-30):
 
 The OpenAI secondary is the user-confirmed mitigation for Gemini
 preview-tier 503-overload events observed on 2026-04-30. See Plan 02
-Task 2.4 Analysis section in /Users/dk/Projects/Hustle_Long_Beach/Plans/.
+Task 2.4 Analysis section in the maintainer's private project notes.
 
 Environment variables consumed (all optional; defaults match production):
     LLM_PRIMARY              "gemini" (only supported value today)
@@ -23,6 +23,7 @@ from .providers.base import GenerationRequest, ProviderError, Provider
 from .providers.gemini import GeminiProvider
 from .providers.archive import ArchiveProvider
 from .validators import validate_output, ValidationError
+from .timestamps import apply_closing_line, closing_line
 
 OUTPUT_MAP = {
     "4hours":  Path("data/current_4_hour_text_status.txt"),
@@ -101,6 +102,10 @@ def run_inference(timeframe: str, summary_json_text: str) -> Path:
         timeframe=timeframe,
     )
 
+    # The closing timestamp line is computed in code (Pacific time with the right
+    # PST/PDT offset) and replaces anything the model writes, so it is always correct.
+    stamp_line = closing_line(summary_json_text)
+
     providers = get_providers()
     last_error: Exception | None = None
     for provider in providers:
@@ -110,6 +115,7 @@ def run_inference(timeframe: str, summary_json_text: str) -> Path:
             # validation (no real closing line). Skip validation for archive
             # results so the cascade always reaches a usable fallback.
             if provider.name != "archive":
+                result.text = apply_closing_line(result.text, stamp_line)
                 validate_output(result.text)
             output_path = OUTPUT_MAP[timeframe]
             output_path.parent.mkdir(parents=True, exist_ok=True)

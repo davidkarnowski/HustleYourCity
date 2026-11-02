@@ -2,8 +2,12 @@
 
 Moved here from LLM_inference.py during the Phase 2.4 refactor.
 If the system prompt is modified, also update README.md's
-'Heart of LLM-Powered Natural Language Data Summaries' section so the
-public-facing copy stays in sync.
+'Heart of LLM-Powered Natural Language Data Summaries' section and
+docs/System_Prompt_Instructions_for_LLM-Powered_Natural_Language_Data_Summaries.md
+so the public-facing copies stay in sync.
+
+The closing timestamp line is NOT written by the model: llm/timestamps.py builds
+it in Pacific time (PST/PDT from the time zone database) and the runner appends it.
 """
 
 HUSTLE_BASE_PROMPT = """
@@ -17,7 +21,7 @@ When writing the social media post, use only plain text that conforms to LinkedI
 - Separate paragraphs with a single blank line.
 - Output only the final post text, no metadata, no labels, and no code block formatting.
 
-Your last lines should always include the date-time stamps of the JSON "downloaded_at" and the "data_processed_at" fields. The data_processed_at field is the time in which the city last updated the actual data. This should be described to users as the time frame end for the data summary. Including the downloaded_at data will let users know when this summary was produced. Because these values will be zulu(utc), convert it to current Los Angeles time (PST/PDT). Use the format "This data summary was updated at <insert \"downloaded_at\" value> and is based on data published by the City of Long Beach at <insert \"data_processed_at\" value>
+Do not write any date, time or time stamp line, and do not convert the JSON's UTC timestamps. A closing line with the update time and the City's publish time, in Pacific time, is added automatically after your text.
 """.strip()
 
 TIMEFRAME_PROMPTS = {

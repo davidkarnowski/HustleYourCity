@@ -89,7 +89,7 @@ Parses the exported dataset to compute service request summaries, including:
 ---
 ### `LLM_inference.py`
 Generates natural language data summaries using Large Language Model chat completion with the JSON data summary used for user input. A specific system prompt is provided to the model to instruct to act like a civic-minded data evaluator and provide viewers with descriptions of the data that is contained in our parsed summary:
-- Currently set to use GPT-OSS 120B via Cerebras.ai
+- Uses Google Gemini, with OpenAI as the fallback; if neither answers, the most recent archived summary is shown with a notice
 - A base system prompt is combined with specific time-frame adenums to create prompts that focus on the five HLB data time-frames
 - The HLB-parsed JSON data summary is provided as the user prompt
 - Natural language data summaries are produced with every city data update and for every data time frame
@@ -116,7 +116,7 @@ Called as an external module during runtime and generates PNG images of charts w
 - Header artwork of the "Hustle Long Beach!" project logo
 - A bargraph reprsenting the current time-period's average response time data
 - The date-time stamp of when the data was collected
-- Charts are saved under ./Data/Charts and are available via the GitHub pages links for external refernce and inclusion in social media posts
+- Charts are saved under `data/charts/` and are available via the GitHub Pages links for reference and sharing
 
 ---
 
@@ -207,19 +207,13 @@ While the calculations are accurate to the timestamps and data provided, users s
 ---
 ## The Heart of LLM-Powered Natural Language Data Summaries
 
-### System Prompt Used for Data Analysis by Large Language Models:
+### How the summaries are written
 
->You are a third-party government accountability JSON interpreter for the HustleLongBeach community that evaluates city service response times. You are not officially part of Long Beach government and you do not represent any agency management so do not refer to the work as ours or done by “we”. You are ready to make sense of city service data from the Long Beach service call data via JSON. Evaluate the data and write a short social media update about the latest data update. We don't need all the data to be revealed and the post created should be short enough for a social media post. Let's make sure we talk about significant data changes in the past 24-hours and any case type that has significantly low or high response times (in hours). Make the data interpretable for the citizens of Long Beach. Hour counts over 72-hours should be expressed in days, weeks or months. Hour counts below 90 minutes should be measured in minutes. Remember that you are just trying to make sure the public knows about the latest response times, call totals and changes. In general, let's ignore data that is older than 90 days, but certainly report on our 1-day, 7-day and 30-day trends as the followers want recent and relevant reporting. Use facts and statistics to back up your post's language, always being factual about your response. Encourage followers to use the Go Long Beach service application to report issues to the city. Use straight-forward and simple language, nothing elaborate or flowery. 
->
->When writing the LinkedIn post, use only plain text that conforms to LinkedIn's Little Text Format:
->- Do not include any emojis or non-ASCII characters (avoid symbols like 🚨📱, smart quotes, or narrow spaces).
->- Use only straight quotes (" ") and apostrophes ('), and standard hyphens (-).
->- Replace all non-breaking spaces with normal spaces.
->- Do not include markdown, HTML, or Unicode styling.
->- Separate paragraphs with a single blank line.
->- Output only the final post text, no metadata, no labels, and no code block formatting.
->
->You very last line should always include the date-time stamp of the JSON ""downloaded_at"" field. This will let users know when this summary was produced. Because this value with be zulu(utc), convert it to Pacific Time. Use the format "This data summary was updated at <insert "downloaded_at" value>.
+The pipeline sends each time window's numbers (the summary JSON) to a large language model with a fixed system prompt and asks for a short, factual, plain-language update for Long Beach residents. The model is told that the project is independent of the City, to back every statement with the data, to express long response times in days or weeks and short ones in minutes, to encourage residents to report issues through the Go Long Beach app, and to end with the time the data was downloaded and when the City published it.
+
+The prompt asks for plain text only (no emoji, markdown or special characters). That rule dates from when the summaries were also posted to social media, and it is kept because the dashboards show the text as written.
+
+The prompt in use lives in [`llm/prompts.py`](llm/prompts.py), with a readable copy in [`docs/System_Prompt_Instructions_for_LLM-Powered_Natural_Language_Data_Summaries.md`](docs/System_Prompt_Instructions_for_LLM-Powered_Natural_Language_Data_Summaries.md). Google Gemini writes the summaries, with OpenAI as the fallback; if neither answers, the site shows the most recent archived summary and says so.
 
 ---
 
@@ -237,23 +231,9 @@ Keeping full exports (about 11 MB each, six a day) out of git keeps the reposito
 
 ---
 
-## Automated Social Media Publishing Using Make.com Scenario
-![Hustle Long Beach Make.com Scenario](https://hustlelongbeach.com/docs/Hustle_Long_Beach-Make_dot_com-Scenario_Workflow-Social_Publsihing.png)
+## Social Media
 
----
-
-### Make.com Automated Workflow "Scenario" Description  
-This scenario is designed to post the natural language data summaries and generated PNG charts parsed from the City of Long Beach, California’s open service call dataset to Facebook and LinkedIn. The scenario is initiated by a webhook request call sent from the project’s associated GitHub Actions workflow once every 24 hours.
-
-The initial module following the Make.com webhook module is an HTTPS **“Get a File”** module, which retrieves the most recent natural language summary from the Hustle Long Beach! website URL.
-
-After the summary text file is downloaded, the correlated PNG file of the generated chart is downloaded and combined in LinkedIn and Facebook modules in the scenario for automated publishing.
-
-#### Facebook Pages Status Publishing
-The routed `LLM_Response` variable is also sent to a Make.com connector for **Facebook Pages**, publishing the latest inferred status update to the **Hustle Long Beach** community page.
-
-#### LinkedIn Organization Status Publishing
-The final route for the `LLM_Response` variable is a Make.com connector for **LinkedIn**, where the same inferred chat completion is published on the **Hustle Long Beach** organization page.
+Until October 2026, a daily summary and chart were posted automatically to the project's Facebook and LinkedIn pages through a Make.com scenario, started by a GitHub Actions webhook. That daily posting has been retired, and the project no longer uses Make.com. The dashboards and the archive are the project's home; the social pages now get occasional posts, such as a link to a new blog post, written by hand.
 
 ---
 

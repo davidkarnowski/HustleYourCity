@@ -48,11 +48,9 @@ City of Long Beach Open Data API  (Opendatasoft / Huwise v2.1)
             │
             ▼
   git commit + push (github-actions[bot])  ──►  GitHub Pages serves /data/dashboard/*
-            │
-            ▼
-  make_dot_com-scenario-hook.yml (separate cron, daily 8:45 AM PT)
-       └─►  POST to Make.com webhook  ──►  LinkedIn + Facebook publishing
 ```
+
+Daily social posting (a Make.com scenario fed by `make_dot_com-scenario-hook.yml`) was retired in October 2026; the project no longer uses Make.com.
 
 ---
 
@@ -70,7 +68,7 @@ City of Long Beach Open Data API  (Opendatasoft / Huwise v2.1)
 | `site_common.py` | Banner link, PayPal support block and privacy note shared by every page. |
 | `generate_charts.py` | Matplotlib bar chart + Pillow header/footer compositing → branded PNG. Loads DejaVuSans bundled with matplotlib for cross-platform fonts. |
 | `generate_about_page.py` | Converts `README.md` → `data/dashboard/about.html`. |
-| `trigger_make_webhook.py` | Posts a small JSON payload to a Make.com webhook URL using `MAKE_WEBHOOK_URL` + `MAKE_WEBHOOK_KEY` env vars. |
+| `trigger_make_webhook.py` | Retired: posted to the former Make.com social-posting scenario. Kept only until the workflow below is removed. |
 | `index.html` | Root redirect → `/data/dashboard/index_24hours.html`. |
 | `support/index.html` | Redirect to PayPal support page. |
 | `CNAME` | `hustlelongbeach.com` (GitHub Pages custom domain). |
@@ -80,7 +78,7 @@ City of Long Beach Open Data API  (Opendatasoft / Huwise v2.1)
 | Workflow | Trigger | Purpose |
 |---|---|---|
 | `Update_Data-Build_Dashboards.yml` | Cron 6×/day + manual | The end-to-end pipeline (export → parse → LLM → dashboards → about → commit). |
-| `make_dot_com-scenario-hook.yml` | Cron daily 8:45 AM PT + manual | Fires the Make.com webhook to publish to LinkedIn / Facebook. |
+| `make_dot_com-scenario-hook.yml` | Retired (to be disabled/removed) | Formerly fired the Make.com webhook for daily LinkedIn / Facebook posts. Do not re-enable. |
 | `test_llm_inference.yml` | Manual only | Re-runs `LLM_inference.py` against current summary JSON. |
 
 **Cron schedules in `Update_Data-Build_Dashboards.yml` are set for PST (UTC−8).** During PDT (UTC−7, March–November) the actual fire time is one hour later than the comment suggests. The City publishes data at 3, 7, 11 AM/PM PT; current cron fires hit ~10 minutes after PST-equivalent windows, which means ~70 minutes after the 7 AM PDT publish. See the eval doc for fixes.
@@ -121,8 +119,7 @@ Preview the archive page over HTTP (it fetches files, so `file://` won't work): 
 | Name | Used by | Notes |
 |---|---|---|
 | `GOOGLE_AI_STUDIO_API_KEY` | `LLM_inference.py` | Gemini API key from Google AI Studio. |
-| `MAKE_WEBHOOK_URL` | `trigger_make_webhook.py` | Make.com daily-post scenario URL. |
-| `MAKE_WEBHOOK_KEY` | `trigger_make_webhook.py` | Make.com `x-make-apikey` header value. |
+| `MAKE_WEBHOOK_URL`, `MAKE_WEBHOOK_KEY` | `trigger_make_webhook.py` (retired) | Former Make.com scenario; to be deleted with the workflow. |
 | `OPENAI_API_KEY` | `LLM_inference.py` (secondary cascade) | OpenAI API key. Cascades when Gemini fails. Per Decision Log D-05 (2026-04-30). |
 
 Secrets are read from GitHub Actions repo secrets in CI.
@@ -150,7 +147,7 @@ Secrets are read from GitHub Actions repo secrets in CI.
 - Don't `git filter-branch` / `git filter-repo` / `git push --force` to shrink history — the eval doc has a planned migration approach.
 - Don't add server-side dependencies (Flask, FastAPI, databases). The whole point is the static + GHA model.
 - Don't switch the LLM provider casually — model name, prompt, and output shape are coupled to the dashboard's status-box rendering.
-- Don't rename `data/summary_results_current.json` or the `current_<period>_text_status.txt` filenames; they're consumed by both code and (likely) the Make.com scenario via direct URL.
+- Don't rename `data/summary_results_current.json` or the `current_<period>_text_status.txt` filenames; they're consumed by the code and may be linked from outside by direct URL.
 
 ---
 

@@ -50,7 +50,7 @@ City of Long Beach Open Data API  (Opendatasoft / Huwise v2.1)
   git commit + push (github-actions[bot])  ──►  GitHub Pages serves /data/dashboard/*
 ```
 
-Daily social posting (a Make.com scenario fed by `make_dot_com-scenario-hook.yml`) was retired in October 2026; the project no longer uses Make.com.
+Daily social posting through a Make.com scenario was retired in October 2026, and its workflow, script and secrets were removed on 2026-11-02. The project no longer uses Make.com; don't reintroduce a social-posting workflow without the maintainer.
 
 ---
 
@@ -68,7 +68,6 @@ Daily social posting (a Make.com scenario fed by `make_dot_com-scenario-hook.yml
 | `site_common.py` | Banner link, PayPal support block and privacy note shared by every page. |
 | `generate_charts.py` | Matplotlib bar chart + Pillow header/footer compositing → branded PNG. Loads DejaVuSans bundled with matplotlib for cross-platform fonts. |
 | `generate_about_page.py` | Converts `README.md` → `data/dashboard/about.html`. |
-| `trigger_make_webhook.py` | Retired: posted to the former Make.com social-posting scenario. Kept only until the workflow below is removed. |
 | `index.html` | Root redirect → `/data/dashboard/index_24hours.html`. |
 | `support/index.html` | Redirect to PayPal support page. |
 | `CNAME` | `hustlelongbeach.com` (GitHub Pages custom domain). |
@@ -78,8 +77,9 @@ Daily social posting (a Make.com scenario fed by `make_dot_com-scenario-hook.yml
 | Workflow | Trigger | Purpose |
 |---|---|---|
 | `Update_Data-Build_Dashboards.yml` | Cron 6×/day + manual | The end-to-end pipeline (export → parse → LLM → dashboards → about → commit). |
-| `make_dot_com-scenario-hook.yml` | Retired (to be disabled/removed) | Formerly fired the Make.com webhook for daily LinkedIn / Facebook posts. Do not re-enable. |
 | `test_llm_inference.yml` | Manual only | Re-runs `LLM_inference.py` against current summary JSON. |
+| `pipeline-check.yml` | Push to `maintenance/**` + manual | Dry run on ubuntu-26.04 (archive index → dashboards → About), push-logic and snapshot tests, Python 3.12/3.13 import check. Never calls the City API; commits nothing. |
+| `repo-history.yml` | Manual only | Dormant history-maintenance tooling from the 2026-10-07 cleanup; analysis is read-only, a rewrite needs explicit confirmation and a new key. |
 
 **Cron schedules in `Update_Data-Build_Dashboards.yml` are set for PST (UTC−8).** During PDT (UTC−7, March–November) the actual fire time is one hour later than the comment suggests. The City publishes data at 3, 7, 11 AM/PM PT; current cron fires hit ~10 minutes after PST-equivalent windows, which means ~70 minutes after the 7 AM PDT publish. See the eval doc for fixes.
 
@@ -119,7 +119,6 @@ Preview the archive page over HTTP (it fetches files, so `file://` won't work): 
 | Name | Used by | Notes |
 |---|---|---|
 | `GOOGLE_AI_STUDIO_API_KEY` | `LLM_inference.py` | Gemini API key from Google AI Studio. |
-| `MAKE_WEBHOOK_URL`, `MAKE_WEBHOOK_KEY` | `trigger_make_webhook.py` (retired) | Former Make.com scenario; to be deleted with the workflow. |
 | `OPENAI_API_KEY` | `LLM_inference.py` (secondary cascade) | OpenAI API key. Cascades when Gemini fails. Per Decision Log D-05 (2026-04-30). |
 
 Secrets are read from GitHub Actions repo secrets in CI.

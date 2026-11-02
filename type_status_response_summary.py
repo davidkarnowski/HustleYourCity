@@ -112,7 +112,7 @@ def load_export_readonly(export_path):
 
 def fetch_source_update_timestamps(verbose=True):
     """
-    Fetch dataset metadata from Opendatasoft (supports Make.com wrapper).
+    Fetch dataset metadata from Opendatasoft (also accepts older wrapped response formats).
     Extracts data_processed, metadata_processed, modified timestamps.
     """
 
